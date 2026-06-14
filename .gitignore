@@ -64,4 +64,15 @@ build/
 # package-lock.json
 
 *.pt
-edu-agent-backend*.tar
+
+# Docker image exports
+*.tar
+
+# Frontend packaging artifacts
+frontend/dist.zip
+
+# Local reference projects (not part of main repo)
+student/
+
+# Accidental nested backend / local runtime DB
+backend/backend/
