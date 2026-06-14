@@ -354,7 +354,17 @@ GET http://127.0.0.1:8000/health
 
 ### 2. 配置后端环境变量
 
-在 `backend/.env` 中配置：
+在 `backend/.env` 中配置（二选一）：
+
+**DeepSeek（推荐，已配置 `DEEPSEEK_API_KEY` 时自动优先）**
+
+```env
+DEEPSEEK_API_KEY=你的密钥
+DEEPSEEK_API_BASE=https://api.deepseek.com
+DEEPSEEK_MODEL=deepseek-chat
+```
+
+**OpenAI 或 OpenRouter 等兼容接口**
 
 ```env
 OPENAI_API_KEY=
@@ -365,8 +375,12 @@ OPENAI_ORGANIZATION=
 
 说明：
 
+- `DEEPSEEK_API_KEY`
+  职责：DeepSeek 模型调用认证；存在时覆盖 `OPENAI_*` 配置
+- `DEEPSEEK_MODEL`
+  职责：常用 `deepseek-chat` 或 `deepseek-reasoner`
 - `OPENAI_API_KEY`
-  职责：模型调用认证信息
+  职责：未设置 DeepSeek 时的模型调用认证
 - `OPENAI_MODEL`
   职责：指定模型名
 - `OPENAI_BASE_URL`

@@ -23,15 +23,23 @@ class OpenAIModel(BaseModel):
                 error_message="prompt 不能为空",
                 metadata={"model_name":self._model_name}
                 )
-        #模拟openAI真实的输出
         try:
-            print("************")
-            print(f"input_data.promp:{input_data.prompt}")
-            print("************")
-            content = self._client.responses.create(model=self._model_name,input=input_data.prompt)
-            return ModelResponse(content=content.output_text,success=True,metadata={"model_name":self._model_name})
+            response = self._client.chat.completions.create(
+                model=self._model_name,
+                messages=[{"role": "user", "content": input_data.prompt}],
+            )
+            content = response.choices[0].message.content or ""
+            return ModelResponse(
+                content=content,
+                success=True,
+                metadata={"model_name": self._model_name},
+            )
         except Exception as e:
-            return ModelResponse(content=None,success=False,error_message=str(e),
-                                 metadata={"model_name":self._model_name})
+            return ModelResponse(
+                content=None,
+                success=False,
+                error_message=str(e),
+                metadata={"model_name": self._model_name},
+            )
 
         
