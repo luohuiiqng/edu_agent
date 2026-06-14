@@ -77,6 +77,15 @@ def _build_parser() -> argparse.ArgumentParser:
         help="原始 JSON 输出",
     )
 
+    p_tr_diff = sub.add_parser(
+        "diff",
+        help="对比同一会话 transcript 中两次运行的 runtime 快照",
+    )
+    p_tr_diff.add_argument("session_id", help="会话 ID")
+    p_tr_diff.add_argument("--base", type=int, default=0, help="基准条目索引（默认 0）")
+    p_tr_diff.add_argument("--compare", type=int, default=1, help="对比条目索引（默认 1）")
+    p_tr_diff.add_argument("--json", action="store_true", help="原始 JSON 输出")
+
     p_task = sub.add_parser("task", help="异步任务相关操作")
     task_sub = p_task.add_subparsers(dest="task_command", required=True)
 
@@ -104,6 +113,14 @@ def _build_parser() -> argparse.ArgumentParser:
     p_task_transcript = task_sub.add_parser("transcript", help="按任务查看 transcript")
     p_task_transcript.add_argument("task_id")
     p_task_transcript.add_argument("--json", action="store_true", help="原始 JSON 输出")
+
+    p_exp = sub.add_parser("experiment", help="内置 Agent 实验（本地 in-process + 规则 Eval）")
+    exp_sub = p_exp.add_subparsers(dest="exp_command", required=True)
+    p_exp_list = exp_sub.add_parser("list", help="列出 manifest 中的实验")
+    p_exp_list.add_argument("--json", action="store_true", help="原始 JSON 输出")
+    p_exp_run = exp_sub.add_parser("run", help="运行指定实验并输出 Eval 结果")
+    p_exp_run.add_argument("experiment_id", help="实验 ID，如 exp_001_time_tool")
+    p_exp_run.add_argument("--json", action="store_true", help="原始 JSON 输出")
 
     return parser
 
@@ -165,6 +182,31 @@ def cmd_transcript(ns: argparse.Namespace) -> None:
         if fo is not None:
             out_preview = str(fo)[:500]
             print(f"助手: {out_preview}{'…' if len(str(fo)) > 500 else ''}")
+
+
+def cmd_diff(ns: argparse.Namespace) -> None:
+    ctx = _ctx(ns)
+    sid = ns.session_id.strip()
+    url = (
+        ctx.api_base.rstrip("/")
+        + f"/sessions/{sid}/transcript/diff?base={ns.base}&compare={ns.compare}"
+    )
+    data = get_json(url)
+    if ns.json:
+        print(json.dumps(data, ensure_ascii=False, indent=2))
+        return
+    changed = data.get("changed")
+    status = "CHANGED" if changed else "SAME"
+    print(
+        f"[{status}] session={sid} "
+        f"base[{data.get('base_index')}] vs compare[{data.get('compare_index')}]"
+    )
+    for item in data.get("items", []):
+        if not item.get("changed"):
+            continue
+        print(f"\n* {item.get('field')}")
+        print(f"  base:    {item.get('base')}")
+        print(f"  compare: {item.get('compare')}")
 
 
 def _task_url(ctx: ApiContext, suffix: str = "") -> str:
@@ -264,6 +306,41 @@ def cmd_task_transcript(ns: argparse.Namespace) -> None:
             print(f"助手: {out_preview}{'…' if len(str(fo)) > 500 else ''}")
 
 
+def cmd_experiment_list(ns: argparse.Namespace) -> None:
+    from app.eval.loader import list_experiments
+
+    experiments = list_experiments()
+    if getattr(ns, "json", False):
+        payload = [
+            {"id": e.id, "title": e.title, "message": e.message}
+            for e in experiments
+        ]
+        print(json.dumps(payload, ensure_ascii=False, indent=2))
+        return
+    print(f"共 {len(experiments)} 个实验：")
+    for exp in experiments:
+        print(f"- {exp.id}: {exp.title}")
+        print(f"  message: {exp.message}")
+
+
+def cmd_experiment_run(ns: argparse.Namespace) -> None:
+    from app.eval.experiment_runner import run_experiment
+
+    result = run_experiment(ns.experiment_id)
+    if ns.json:
+        print(json.dumps(result.to_dict(), ensure_ascii=False, indent=2))
+        return
+    status = "PASS" if result.passed else "FAIL"
+    print(f"[{status}] {result.experiment_id} — {result.title}")
+    print(f"message: {result.message}")
+    print(f"agent_success: {result.agent_success}")
+    for check in result.eval_result.checks:
+        mark = "ok" if check.passed else "FAIL"
+        print(f"  - [{mark}] {check.rule}: {check.message}")
+    if not result.passed:
+        raise SystemExit(1)
+
+
 def main(argv: list[str] | None = None) -> None:
     parser = _build_parser()
     ns = parser.parse_args(argv)
@@ -276,6 +353,8 @@ def main(argv: list[str] | None = None) -> None:
         cmd_sessions(ns)
     elif ns.command == "transcript":
         cmd_transcript(ns)
+    elif ns.command == "diff":
+        cmd_diff(ns)
     elif ns.command == "task":
         if ns.task_command == "submit":
             cmd_task_submit(ns)
@@ -289,6 +368,13 @@ def main(argv: list[str] | None = None) -> None:
             cmd_task_transcript(ns)
         else:
             parser.error(f"未知 task 子命令: {ns.task_command}")
+    elif ns.command == "experiment":
+        if ns.exp_command == "list":
+            cmd_experiment_list(ns)
+        elif ns.exp_command == "run":
+            cmd_experiment_run(ns)
+        else:
+            parser.error(f"未知 experiment 子命令: {ns.exp_command}")
     else:
         parser.error(f"未知子命令: {ns.command}")
 

@@ -1,0 +1,11 @@
+id: exp_001_time_tool
+title: 问时间必须调用 time_tool
+message: 现在几点了？
+session_id: exp-001-time-tool
+agent:
+  use_mock_model: true
+checklist:
+  must_call_tool: time_tool
+  planner_action: tool
+  no_errors: true
+  require_final_output: true

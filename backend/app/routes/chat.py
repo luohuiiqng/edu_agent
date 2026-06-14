@@ -12,6 +12,7 @@ from app.schemas.task_input_output import (
 )
 from app.services.chat_service import chat_service
 from app.schemas.transcript_response import TranscriptEntryResponse
+from app.schemas.transcript_diff import TranscriptDiffResponse
 from app.schemas.session_response import SessionResponse
 
 
@@ -74,6 +75,29 @@ def list_sessions() -> list[SessionResponse]:
 )
 def get_session_transcript(session_id: str) -> list[TranscriptEntryResponse]:
     return chat_service.get_transcript(session_id=session_id)
+
+
+@router.get(
+    "/sessions/{session_id}/transcript/diff",
+    response_model=TranscriptDiffResponse,
+)
+def diff_session_transcript(
+    session_id: str,
+    base: int = 0,
+    compare: int = 1,
+) -> TranscriptDiffResponse:
+    try:
+        payload = chat_service.diff_transcript(
+            session_id=session_id,
+            base_index=base,
+            compare_index=compare,
+        )
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=400,
+            detail={"error": {"code": "BAD_REQUEST", "message": str(exc)}},
+        ) from exc
+    return TranscriptDiffResponse(**payload)
 
 
 @router.post("/tasks", response_model=TaskSubmitResponse)

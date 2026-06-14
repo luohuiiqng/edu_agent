@@ -16,6 +16,17 @@ def test_parser_subcommands():
     ns_task_tr = p.parse_args(["task", "transcript", "task-1"])
     assert ns_task_tr.command == "task"
     assert ns_task_tr.task_command == "transcript"
+    ns_exp = p.parse_args(["experiment", "list"])
+    assert ns_exp.command == "experiment"
+    assert ns_exp.exp_command == "list"
+    ns_exp_run = p.parse_args(["experiment", "run", "exp_001_time_tool"])
+    assert ns_exp_run.exp_command == "run"
+    assert ns_exp_run.experiment_id == "exp_001_time_tool"
+    ns_diff = p.parse_args(["diff", "session-1", "--base", "0", "--compare", "1"])
+    assert ns_diff.command == "diff"
+    assert ns_diff.session_id == "session-1"
+    assert ns_diff.base == 0
+    assert ns_diff.compare == 1
 
 
 def test_resolve_origin_from_api_base():

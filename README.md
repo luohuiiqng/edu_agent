@@ -10,7 +10,7 @@
 
 **现阶段不做：** 通用 C 端聊天、Coding Agent 主赛道、训练式智能阅卷、高保真物理仿真平台、企业全栈 Agent SaaS。
 
-完整说明见 [`docs/agent-framework-design.md` §2 产品定位与边界](docs/agent-framework-design.md#2-产品定位与边界)。
+完整说明见 [`docs/agent-framework-design.md` §2 产品定位与边界](docs/agent-framework-design.md#2-产品定位与边界)。实验与规则 Eval 见 [`docs/experiments.md`](docs/experiments.md)。
 
 当前已具备以下能力：
 

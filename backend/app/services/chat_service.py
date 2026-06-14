@@ -219,5 +219,39 @@ class ChatService:
             TranscriptEntryResponse.from_transcript_entry(entry) for entry in entries
         ]
 
+    def diff_transcript(
+        self,
+        session_id: str,
+        base_index: int,
+        compare_index: int,
+    ) -> dict[str, Any]:
+        from app.eval.diff import diff_runtime_snapshots
+
+        entries = self.get_transcript(session_id)
+        if not entries:
+            raise ValueError("transcript 为空")
+        if base_index < 0 or base_index >= len(entries):
+            raise ValueError(f"base_index 越界: {base_index}")
+        if compare_index < 0 or compare_index >= len(entries):
+            raise ValueError(f"compare_index 越界: {compare_index}")
+
+        base_entry = entries[base_index]
+        compare_entry = entries[compare_index]
+        diff = diff_runtime_snapshots(
+            base_entry.runtime_session,
+            compare_entry.runtime_session,
+            base_label=f"index:{base_index}",
+            compare_label=f"index:{compare_index}",
+        )
+        return {
+            "session_id": session_id,
+            "base_index": base_index,
+            "compare_index": compare_index,
+            "base_timestamp": base_entry.timestamp,
+            "compare_timestamp": compare_entry.timestamp,
+            "changed": diff.changed,
+            "items": [item.to_dict() for item in diff.items],
+        }
+
 settings = Settings.from_env()
 chat_service = ChatService(settings=settings)
