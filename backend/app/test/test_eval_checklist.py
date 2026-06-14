@@ -56,3 +56,27 @@ def test_eval_from_snapshot_dict():
         ),
     )
     assert result.passed is True
+
+
+def test_eval_parallel_and_call_limits():
+    snapshot = {
+        "tool_calls": [],
+        "model_calls": [{"model_name": "mock"}, {"model_name": "mock"}],
+        "planner_result": {"action": "workflow"},
+        "workflow_trace": [
+            {"step_name": "planner", "action": "workflow"},
+            {"step_name": "infra_line", "parallel_fan_out": True},
+            {"step_name": "merge", "parallel_fan_out": False},
+        ],
+        "errors": [],
+        "final_output": "ok",
+    }
+    result = evaluate_runtime_session(
+        snapshot,
+        EvalChecklist(
+            require_parallel_fan_out=True,
+            max_tool_calls=0,
+            min_model_calls=2,
+        ),
+    )
+    assert result.passed is True

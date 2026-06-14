@@ -37,18 +37,25 @@ class RuntimeSession:
         )
 
     def add_model_call(
-        self, prompt: str, success: bool, output: Any, error: str | None
+        self,
+        prompt: str,
+        success: bool,
+        output: Any,
+        error: str | None,
+        *,
+        metadata: dict[str, Any] | None = None,
     ) -> None:
         timestamp = datetime.now().isoformat()
-        self.model_calls.append(
-            {
-                "prompt": prompt,
-                "success": success,
-                "output": output,
-                "error": error,
-                "timestamp": timestamp,
-            }
-        )
+        row: dict[str, Any] = {
+            "prompt": prompt,
+            "success": success,
+            "output": output,
+            "error": error,
+            "timestamp": timestamp,
+        }
+        if metadata:
+            row["metadata"] = metadata
+        self.model_calls.append(row)
 
     def add_workflow_step_trace(
         self,
@@ -103,7 +110,26 @@ class RuntimeSession:
         """登记一条成果元数据（见 ``schemas.collaboration.deliverable_dict``）。"""
         self.deliverables.append(dict(record))
     def add_error(self, error_message: str) -> None:
-        self.errors.append(error_message)
+        text = str(error_message or "").strip()
+        if not text:
+            return
+        self.errors.append(text)
+
+    def update_planner_trace_outcome(
+        self,
+        *,
+        success: bool,
+        error: str | None = None,
+    ) -> None:
+        """根据本轮实际执行结果，回写 planner 步骤 trace。"""
+        for row in reversed(self.workflow_trace):
+            if row.get("step_name") == "planner":
+                row["success"] = success
+                if error:
+                    row["error"] = error
+                elif success:
+                    row["error"] = None
+                return
 
     def to_dict(self) -> dict[str, Any]:
         return {

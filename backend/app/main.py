@@ -7,6 +7,7 @@ from fastapi.responses import JSONResponse
 
 
 from app.routes.chat import router as chat_router
+from app.routes.experiments import router as experiments_router
 
 app = FastAPI(title="edu_agent Chat API", version="0.1.0")
 # CORS(app)
@@ -67,5 +68,6 @@ async def unhandled_exception_handler(_: Request, __: Exception) -> JSONResponse
 
 
 app.include_router(chat_router, prefix="/agent_api")
+app.include_router(experiments_router, prefix="/agent_api")
 
 

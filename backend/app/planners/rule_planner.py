@@ -7,6 +7,7 @@ from __future__ import annotations
 from typing import Any, Callable
 
 from app.planners.base_planner import BasePlanner
+from app.planners.plan_context import PlanContext
 from app.tools.tool_router import ToolRouter
 
 from app.planners import rule_step_builders as steps
@@ -22,7 +23,21 @@ RULE_PLAN_ATTEMPT_ORDER: tuple[str, ...] = (
     "research_ffmpeg",
     "research_team",
     "tool_route",
+    "contextual_time_followup",
+    "contextual_workflow_followup",
     "fallback_model",
+)
+
+_TIME_INTENT_HINTS = ("时间", "几点", "现在几点", "当前时间", "现在时间")
+_TIME_FOLLOWUP_HINTS = ("再查", "再来一次", "再报", "再查一次", "还是刚才", "再问一下")
+_WORKFLOW_FOLLOWUP_HINTS = (
+    "再来一遍",
+    "再跑一遍",
+    "按刚才",
+    "再并行",
+    "重做",
+    "再执行",
+    "再来一次",
 )
 
 
@@ -230,6 +245,62 @@ class RulePlanner(BasePlanner):
             "context": {},
         }
 
+    def _try_contextual_time_followup(
+        self, msg: str, raw_message: Any
+    ) -> dict[str, Any] | None:
+        """多轮：当前句是「再查一次」类跟进，且上下文里已有时间意图。"""
+        text = str(msg)
+        combined = str(raw_message)
+        if not any(hint in text for hint in _TIME_FOLLOWUP_HINTS):
+            return None
+        if not any(hint in combined for hint in _TIME_INTENT_HINTS):
+            return None
+        if self._tool_router is None:
+            return None
+        if self._tool_router.route("现在几点了") != "time_tool":
+            return None
+        return {
+            "action": "tool",
+            "reason": "多轮跟进时间查询，结合会话上下文命中 time_tool",
+            "tool_name": "time_tool",
+            "workflow_name": None,
+            "steps": [],
+            "context": {},
+        }
+
+    def _workflow_plan_attempt_chain(
+        self,
+    ) -> tuple[Callable[[str, Any], dict[str, Any] | None], ...]:
+        return (
+            self._try_time_reply_workflow,
+            self._try_parallel_pillar_ffmpeg,
+            self._try_parallel_pillar,
+            self._try_parallel_modules_ffmpeg,
+            self._try_parallel_modules,
+            self._try_research_ffmpeg,
+            self._try_research_team,
+        )
+
+    def _try_contextual_workflow_followup(
+        self, msg: str, raw_message: Any
+    ) -> dict[str, Any] | None:
+        """多轮：当前句是 workflow 跟进，且会话上下文中曾命中并行/研究等 workflow。"""
+        text = str(msg)
+        combined = str(raw_message)
+        if not any(hint in text for hint in _WORKFLOW_FOLLOWUP_HINTS):
+            return None
+        for attempt in self._workflow_plan_attempt_chain():
+            plan = attempt(msg, combined)
+            if plan is not None and plan.get("action") == "workflow":
+                reason = str(plan.get("reason") or "")
+                plan["reason"] = (
+                    f"{reason}（多轮 workflow 跟进）".strip()
+                    if reason
+                    else "多轮 workflow 跟进"
+                )
+                return plan
+        return None
+
     def _try_fallback_model(self, msg: str, raw_message: Any) -> dict[str, Any] | None:
         return {
             "action": "model",
@@ -253,10 +324,23 @@ class RulePlanner(BasePlanner):
             self._try_research_ffmpeg,
             self._try_research_team,
             self._try_tool_route,
+            self._try_contextual_time_followup,
+            self._try_contextual_workflow_followup,
             self._try_fallback_model,
         )
 
-    def plan(self, input_data: Any, context: Any = None) -> dict[str, Any]:
+    def _run_plan_chain(self, msg: str, raw_message: Any) -> dict[str, Any]:
+        for attempt in self._plan_attempt_chain():
+            plan = attempt(msg, raw_message)
+            if plan is not None:
+                return plan
+        raise RuntimeError("plan: unreachable — fallback_model must always return a dict")
+
+    def plan(
+        self,
+        input_data: Any,
+        context: PlanContext | None = None,
+    ) -> dict[str, Any]:
         """根据输入内容生成最小规则计划结果。"""
         if not self.validate_input(input_data):
             return {
@@ -268,11 +352,20 @@ class RulePlanner(BasePlanner):
                 "context": {},
             }
         msg = str(input_data.message).strip()
-        raw = input_data.message
+        plan_ctx = context or PlanContext()
 
-        for attempt in self._plan_attempt_chain():
-            plan = attempt(msg, raw)
-            if plan is not None:
-                return plan
+        plan = self._run_plan_chain(msg, input_data.message)
 
-        raise RuntimeError("plan: unreachable — fallback_model must always return a dict")
+        if plan.get("action") == "model" and plan_ctx.has_prior_turns:
+            combined = plan_ctx.combined_user_text(msg)
+            if combined != msg:
+                contextual = self._try_contextual_time_followup(msg, combined)
+                if contextual is not None:
+                    return contextual
+                workflow_followup = self._try_contextual_workflow_followup(
+                    msg, combined
+                )
+                if workflow_followup is not None:
+                    return workflow_followup
+
+        return plan

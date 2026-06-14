@@ -2,7 +2,18 @@
 import { computed, nextTick, onMounted, ref, watch } from "vue";
 
 import { fetchSessions, fetchTranscript, fetchTranscriptDiff } from "../services/chatApi";
+import {
+  fetchExperiments,
+  isExperimentPairResult,
+  runAllExperiments,
+  runExperiment,
+} from "../services/experimentApi";
 import type { SessionResponse, TranscriptDiffResponse, TranscriptEntryResponse } from "../types/chat";
+import type {
+  ExperimentPairRunResponse,
+  ExperimentRunResponse,
+  ExperimentSummary,
+} from "../types/experiment";
 
 const props = defineProps<{
   activeSessionId?: string;
@@ -35,6 +46,16 @@ const diffCompareIndex = ref(1);
 const diffResult = ref<TranscriptDiffResponse | null>(null);
 const diffLoading = ref(false);
 const diffError = ref("");
+
+const experiments = ref<ExperimentSummary[]>([]);
+const experimentsLoading = ref(false);
+const experimentsError = ref("");
+const experimentsExpanded = ref(true);
+const skipFfmpegOnRunAll = ref(true);
+const runningExperimentId = ref("");
+const runAllLoading = ref(false);
+const experimentResults = ref<Record<string, ExperimentRunResponse | ExperimentPairRunResponse>>({});
+const runAllSummary = ref<{ passed: boolean; passed_count: number; total: number } | null>(null);
 
 const diffChangedItems = computed(() =>
   (diffResult.value?.items ?? []).filter((item) => item.changed),
@@ -103,6 +124,18 @@ const plannerSteps = computed(() => {
 const plannerContext = computed(() => {
   const context = plannerResult.value?.context;
   return context && typeof context === "object" ? context : null;
+});
+const plannerSource = computed(() => {
+  const source = plannerResult.value?.planner_source;
+  return typeof source === "string" && source ? source : null;
+});
+const planningTrace = computed(() => {
+  const trace = plannerResult.value?.planning_trace;
+  return trace && typeof trace === "object" ? trace : null;
+});
+const ruleFallbackReason = computed(() => {
+  const reason = plannerResult.value?.rule_fallback_reason;
+  return typeof reason === "string" && reason ? reason : null;
 });
 const workflowTrace = computed(() => latestRuntimeSession.value?.workflow_trace ?? []);
 const failedWorkflowTraceCount = computed(
@@ -196,7 +229,7 @@ const filteredTranscript = computed(() =>
 );
 
 onMounted(async () => {
-  await loadSessions();
+  await Promise.all([loadSessions(), loadExperiments()]);
 });
 
 watch(
@@ -318,9 +351,92 @@ async function handleSelectSession(sessionId: string) {
 }
 
 async function refreshInspector() {
-  await loadSessions();
+  await Promise.all([loadSessions(), loadExperiments()]);
   if (selectedSessionId.value) {
     await loadTranscript(selectedSessionId.value);
+  }
+}
+
+async function loadExperiments() {
+  experimentsLoading.value = true;
+  experimentsError.value = "";
+
+  try {
+    const response = await fetchExperiments();
+    experiments.value = response.experiments;
+  } catch (error) {
+    experimentsError.value = error instanceof Error ? error.message : "实验列表加载失败";
+  } finally {
+    experimentsLoading.value = false;
+  }
+}
+
+function experimentResultPassed(
+  result: ExperimentRunResponse | ExperimentPairRunResponse | undefined,
+) {
+  if (!result) {
+    return null;
+  }
+  return result.passed;
+}
+
+function experimentEvalChecks(
+  result: ExperimentRunResponse | ExperimentPairRunResponse | undefined,
+) {
+  if (!result) {
+    return [];
+  }
+  if (isExperimentPairResult(result)) {
+    return result.main.eval.checks;
+  }
+  return result.eval.checks;
+}
+
+async function handleRunExperiment(experimentId: string) {
+  runningExperimentId.value = experimentId;
+  experimentsError.value = "";
+
+  try {
+    const result = await runExperiment(experimentId);
+    experimentResults.value = {
+      ...experimentResults.value,
+      [experimentId]: result,
+    };
+  } catch (error) {
+    experimentsError.value = error instanceof Error ? error.message : "实验运行失败";
+  } finally {
+    runningExperimentId.value = "";
+  }
+}
+
+async function handleRunAllExperiments() {
+  runAllLoading.value = true;
+  experimentsError.value = "";
+  runAllSummary.value = null;
+
+  try {
+    const response = await runAllExperiments({
+      skipFfmpeg: skipFfmpegOnRunAll.value,
+      includeControl: true,
+      compact: true,
+    });
+    const nextResults: Record<string, ExperimentRunResponse | ExperimentPairRunResponse> = {};
+    for (const result of response.results) {
+      const experimentId = isExperimentPairResult(result)
+        ? result.main.experiment_id
+        : result.experiment_id;
+      nextResults[experimentId] = result;
+    }
+    experimentResults.value = nextResults;
+    runAllSummary.value = {
+      passed: response.passed,
+      passed_count: response.passed_count,
+      total: response.total,
+    };
+  } catch (error) {
+    experimentsError.value = error instanceof Error ? error.message : "批量实验运行失败";
+  } finally {
+    runAllLoading.value = false;
   }
 }
 
@@ -574,9 +690,94 @@ watch(
 
       <p v-if="sessionsError" class="panel-error">{{ sessionsError }}</p>
       <p v-else-if="sessionsLoading" class="panel-hint">正在同步会话列表...</p>
-      <p v-else-if="sessions.length === 0" class="panel-hint">还没有会话记录，先发一条消息试试。</p>
 
-      <div v-else class="session-list">
+      <section class="experiments-panel">
+        <header class="experiments-header">
+          <div>
+            <p class="panel-eyebrow">Eval Lab</p>
+            <h3>内置实验</h3>
+          </div>
+          <div class="panel-actions">
+            <button type="button" class="ghost-button" @click="experimentsExpanded = !experimentsExpanded">
+              {{ experimentsExpanded ? "收起" : "展开" }}
+            </button>
+            <button
+              type="button"
+              class="ghost-button"
+              :disabled="runAllLoading || experimentsLoading"
+              @click="handleRunAllExperiments"
+            >
+              {{ runAllLoading ? "批量运行中…" : "运行全部" }}
+            </button>
+          </div>
+        </header>
+
+        <div v-if="experimentsExpanded" class="experiments-body">
+          <label class="experiments-option">
+            <input v-model="skipFfmpegOnRunAll" type="checkbox" />
+            <span>批量运行时跳过 ffmpeg 实验（exp_003）</span>
+          </label>
+
+          <p v-if="experimentsError" class="panel-hint is-error">{{ experimentsError }}</p>
+          <p v-else-if="experimentsLoading" class="panel-hint">正在加载实验清单...</p>
+          <p v-else-if="experiments.length === 0" class="panel-hint">暂无内置实验。</p>
+
+          <p v-if="runAllSummary" class="experiments-summary" :class="runAllSummary.passed ? 'is-pass' : 'is-fail'">
+            批量结果：{{ runAllSummary.passed_count }}/{{ runAllSummary.total }} 通过
+          </p>
+
+          <div v-if="experiments.length > 0" class="experiments-list">
+            <article
+              v-for="experiment in experiments"
+              :key="experiment.id"
+              class="experiment-card"
+            >
+              <div class="experiment-card-head">
+                <div>
+                  <strong>{{ experiment.id }}</strong>
+                  <p>{{ experiment.title }}</p>
+                </div>
+                <span
+                  v-if="experimentResultPassed(experimentResults[experiment.id]) !== null"
+                  class="status-badge"
+                  :class="experimentResultPassed(experimentResults[experiment.id]) ? 'is-success' : 'is-failure'"
+                >
+                  {{ experimentResultPassed(experimentResults[experiment.id]) ? "PASS" : "FAIL" }}
+                </span>
+              </div>
+              <p class="experiment-message">{{ experiment.message }}</p>
+              <div class="experiment-card-actions">
+                <button
+                  type="button"
+                  class="ghost-button"
+                  :disabled="runningExperimentId === experiment.id || runAllLoading"
+                  @click="handleRunExperiment(experiment.id)"
+                >
+                  {{ runningExperimentId === experiment.id ? "运行中…" : "运行" }}
+                </button>
+                <span v-if="experiment.has_control" class="experiment-meta">含对照组</span>
+              </div>
+              <ul
+                v-if="experimentEvalChecks(experimentResults[experiment.id]).length > 0"
+                class="experiment-checks"
+              >
+                <li
+                  v-for="check in experimentEvalChecks(experimentResults[experiment.id])"
+                  :key="`${experiment.id}-${check.rule}`"
+                  :class="check.passed ? 'is-pass' : 'is-fail'"
+                >
+                  <strong>{{ check.rule }}</strong>
+                  <span>{{ check.message }}</span>
+                </li>
+              </ul>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <p v-if="!sessionsLoading && sessions.length === 0" class="panel-hint">还没有会话记录，先发一条消息试试。</p>
+
+      <div v-if="sessions.length > 0" class="session-list">
         <section class="stats-grid session-overview-grid">
           <article
             v-for="stat in sessionPanelStats"
@@ -674,6 +875,10 @@ watch(
               <strong>{{ plannerLabel(plannerResult.action) }}</strong>
             </article>
             <article class="planner-card">
+              <span>Source</span>
+              <strong>{{ plannerSource || "unknown" }}</strong>
+            </article>
+            <article class="planner-card">
               <span>Tool</span>
               <strong>{{ plannerLabel(plannerResult.tool_name) }}</strong>
             </article>
@@ -683,10 +888,34 @@ watch(
             </article>
           </div>
 
+        <article v-if="ruleFallbackReason" class="planner-reason planner-fallback">
+            <span>Rule Fallback</span>
+            <p>{{ ruleFallbackReason }}</p>
+          </article>
+
         <article class="planner-reason">
             <span>Reason</span>
             <p>{{ plannerLabel(plannerResult.reason) }}</p>
           </article>
+
+          <section v-if="planningTrace" class="planner-planning-trace">
+            <header class="subsection-header">
+              <h4>Model Planning Trace</h4>
+              <span>{{ planningTrace.success === false ? "失败" : "成功" }}</span>
+            </header>
+            <article v-if="planningTrace.parsed" class="planner-trace-block">
+              <span>解析结果</span>
+              <pre class="runtime-code compact-code">{{ stringifyValue(planningTrace.parsed) }}</pre>
+            </article>
+            <article v-if="planningTrace.raw_output" class="planner-trace-block">
+              <span>原始输出</span>
+              <pre class="runtime-code compact-code">{{ stringifyValue(planningTrace.raw_output) }}</pre>
+            </article>
+            <article v-if="planningTrace.error" class="planner-trace-block planner-trace-error">
+              <span>错误</span>
+              <p>{{ planningTrace.error }}</p>
+            </article>
+          </section>
 
           <section v-if="plannerSteps.length > 0" class="planner-steps">
             <header class="subsection-header">
@@ -1368,8 +1597,43 @@ watch(
 
 .planner-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 10px;
+}
+
+.planner-fallback {
+  border-color: rgba(251, 191, 36, 0.35);
+  background: rgba(255, 251, 235, 0.95);
+}
+
+.planner-planning-trace {
+  display: grid;
+  gap: 12px;
+}
+
+.planner-trace-block {
+  display: grid;
+  gap: 8px;
+  border-radius: 14px;
+  padding: 12px;
+  background: rgba(248, 250, 252, 0.94);
+  border: 1px solid rgba(226, 232, 240, 0.88);
+}
+
+.planner-trace-block span {
+  font-size: 12px;
+  color: #92400e;
+}
+
+.planner-trace-block p {
+  margin: 0;
+  color: #991b1b;
+  line-height: 1.6;
+}
+
+.planner-trace-error {
+  border-color: rgba(248, 113, 113, 0.24);
+  background: rgba(254, 242, 242, 0.96);
 }
 
 .planner-card,
@@ -1785,6 +2049,136 @@ watch(
 
 .panel-hint.is-error {
   color: #dc2626;
+}
+
+.experiments-panel {
+  margin-bottom: 14px;
+  padding: 14px 16px;
+  border-radius: 16px;
+  border: 1px solid rgba(16, 185, 129, 0.22);
+  background: rgba(236, 253, 245, 0.85);
+}
+
+.experiments-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.experiments-header h3 {
+  margin: 4px 0 0;
+  font-size: 1rem;
+  color: #111827;
+}
+
+.experiments-body {
+  display: grid;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.experiments-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.85rem;
+  color: #334155;
+}
+
+.experiments-summary {
+  margin: 0;
+  font-weight: 600;
+}
+
+.experiments-summary.is-pass {
+  color: #047857;
+}
+
+.experiments-summary.is-fail {
+  color: #b45309;
+}
+
+.experiments-list {
+  display: grid;
+  gap: 10px;
+  max-height: 280px;
+  overflow: auto;
+  padding-right: 4px;
+}
+
+.experiment-card {
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid rgba(226, 232, 240, 0.9);
+}
+
+.experiment-card-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  align-items: flex-start;
+}
+
+.experiment-card-head p {
+  margin: 4px 0 0;
+  font-size: 0.85rem;
+  color: #475569;
+}
+
+.experiment-message {
+  margin: 0;
+  font-size: 0.82rem;
+  color: #64748b;
+  line-height: 1.5;
+}
+
+.experiment-card-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.experiment-meta {
+  font-size: 0.75rem;
+  color: #64748b;
+}
+
+.experiment-checks {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+}
+
+.experiment-checks li {
+  display: grid;
+  gap: 2px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  font-size: 0.78rem;
+  background: rgba(248, 250, 252, 0.95);
+}
+
+.experiment-checks li.is-pass {
+  border-left: 3px solid #10b981;
+}
+
+.experiment-checks li.is-fail {
+  border-left: 3px solid #ef4444;
+}
+
+.experiment-checks strong {
+  color: #0f172a;
+}
+
+.experiment-checks span {
+  color: #64748b;
+  line-height: 1.4;
 }
 
 .transcript-card {

@@ -20,9 +20,26 @@ class Settings:
     store_backend: str
     runtime_db_path: str | None
     model_provider: str
+    model_enable_tool_calling: bool = True
+    model_max_tool_rounds: int = 1
+    model_system_prompt: str | None = None
+    planner_mode: str = "hybrid"
 
     @classmethod
     def from_env(cls) -> "Settings":
+        def _bool(name: str, default: bool) -> bool:
+            raw = os.getenv(name)
+            if raw is None:
+                return default
+            return raw.strip().lower() in ("1", "true", "yes", "on")
+
+        model_enable_tool_calling = _bool("MODEL_ENABLE_TOOL_CALLING", True)
+        model_max_tool_rounds = int(os.getenv("MODEL_MAX_TOOL_ROUNDS", "1"))
+        model_system_prompt = os.getenv("MODEL_SYSTEM_PROMPT") or None
+        planner_mode = os.getenv("PLANNER_MODE", "hybrid").strip().lower()
+        if planner_mode not in ("rule", "hybrid", "model"):
+            planner_mode = "hybrid"
+
         deepseek_key = os.getenv("DEEPSEEK_API_KEY", "").strip()
         if deepseek_key:
             return cls(
@@ -35,6 +52,10 @@ class Settings:
                 store_backend=os.getenv("STORE_BACKEND", "memory"),
                 runtime_db_path=os.getenv("RUNTIME_DB_PATH"),
                 model_provider="deepseek",
+                model_enable_tool_calling=model_enable_tool_calling,
+                model_max_tool_rounds=model_max_tool_rounds,
+                model_system_prompt=model_system_prompt,
+                planner_mode=planner_mode,
             )
 
         return cls(
@@ -45,4 +66,8 @@ class Settings:
             store_backend=os.getenv("STORE_BACKEND", "memory"),
             runtime_db_path=os.getenv("RUNTIME_DB_PATH"),
             model_provider="openai",
+            model_enable_tool_calling=model_enable_tool_calling,
+            model_max_tool_rounds=model_max_tool_rounds,
+            model_system_prompt=model_system_prompt,
+            planner_mode=planner_mode,
         )

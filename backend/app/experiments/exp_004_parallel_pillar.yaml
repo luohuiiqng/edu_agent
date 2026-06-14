@@ -1,0 +1,19 @@
+id: exp_004_parallel_pillar
+title: 基建/业务/数据三线并行须走 parallel workflow
+message: 基建、业务、数据三线并行规划用户登录
+session_id: exp-004-parallel-pillar
+agent:
+  profile: time_only
+checklist:
+  planner_action: workflow
+  min_workflow_steps: 5
+  require_parallel_fan_out: true
+  max_tool_calls: 0
+  min_model_calls: 3
+  no_errors: true
+  require_final_output: true
+control:
+  message: 现在几点了？
+  checklist:
+    planner_action: tool
+    must_call_tool: time_tool

@@ -1,0 +1,14 @@
+id: exp_006_multi_module_parallel
+title: 多模块并行须走 multi_module parallel workflow
+message: 后端、前端、测试质量多模块并行开发登录页
+session_id: exp-006-multi-module
+agent:
+  profile: time_only
+checklist:
+  planner_action: workflow
+  min_workflow_steps: 5
+  require_parallel_fan_out: true
+  max_tool_calls: 0
+  min_model_calls: 3
+  no_errors: true
+  require_final_output: true

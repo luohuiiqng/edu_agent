@@ -15,6 +15,9 @@ class EvalChecklist:
     planner_action: PlannerAction | None = None
     min_workflow_steps: int | None = None
     min_deliverables: int | None = None
+    min_model_calls: int | None = None
+    max_tool_calls: int | None = None
+    require_parallel_fan_out: bool = False
     no_errors: bool = False
     require_final_output: bool = False
 
@@ -31,6 +34,9 @@ class EvalChecklist:
             planner_action=payload.get("planner_action"),
             min_workflow_steps=payload.get("min_workflow_steps"),
             min_deliverables=payload.get("min_deliverables"),
+            min_model_calls=payload.get("min_model_calls"),
+            max_tool_calls=payload.get("max_tool_calls"),
+            require_parallel_fan_out=bool(payload.get("require_parallel_fan_out", False)),
             no_errors=bool(payload.get("no_errors", False)),
             require_final_output=bool(payload.get("require_final_output", False)),
         )

@@ -3,3 +3,6 @@ experiments:
   - exp_001_time_tool
   - exp_002_time_reply_workflow
   - exp_003_ffmpeg_deliverable
+  - exp_004_parallel_pillar
+  - exp_005_model_fallback
+  - exp_006_multi_module_parallel

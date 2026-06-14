@@ -1,9 +1,7 @@
-import os
-
 from app.agent.chat_agent import ChatAgent
 from app.memory.in_memory_memory import InMemoryMemory
 from app.models.openai_model import OpenAIModel
-from app.planners.rule_planner import RulePlanner
+from app.planners.planner_factory import create_planner
 from app.prompts.prompt_builder import PromptBuilder
 from app.runtime.in_memory_session_store import InMemorySessionStore
 from app.runtime.in_memory_transcript_store import InMemoryTranscriptStore
@@ -48,6 +46,7 @@ class AgentFactory:
         base_url = settings.openai_base_url
         organization = settings.openai_organization
 
+        prompt_builder = PromptBuilder(system_prompt=settings.model_system_prompt)
         model = OpenAIModel(
             model_name=model_name,
             api_key=api_key,
@@ -69,15 +68,22 @@ class AgentFactory:
             ffmpeg_tool.get_name(),
             ["ffmpeg样例", "静音视频样例", "演示短视频", "ffmpeg演示"],
         )
-        planner = RulePlanner(tool_router=tool_router)
+        planner = create_planner(
+            settings,
+            model=model,
+            tool_registry=tool_registry,
+            tool_router=tool_router,
+        )
 
         return ChatAgent(
             model=model,
             memory=self._memory,
-            prompt_builder=self._prompt_builder,
+            prompt_builder=prompt_builder,
             planner=planner,
             tool_registry=tool_registry,
             runtime_manager=self._runtime_manager,
+            model_enable_tool_calling=settings.model_enable_tool_calling,
+            model_max_tool_rounds=settings.model_max_tool_rounds,
         )
 
     def get_session_store(

@@ -1,0 +1,13 @@
+id: exp_005_model_fallback
+title: 纯问候须走 model 分支且不调用工具
+message: 你好
+session_id: exp-005-model-fallback
+agent:
+  profile: time_only
+checklist:
+  planner_action: model
+  max_tool_calls: 0
+  min_model_calls: 1
+  must_not_call_tool: time_tool
+  no_errors: true
+  require_final_output: true

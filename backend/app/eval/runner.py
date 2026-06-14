@@ -41,6 +41,30 @@ def _deliverable_count(session: RuntimeSession | dict[str, Any]) -> int:
     return len(items)
 
 
+def _model_call_count(session: RuntimeSession | dict[str, Any]) -> int:
+    if isinstance(session, RuntimeSession):
+        calls = session.model_calls
+    else:
+        calls = session.get("model_calls") or []
+    return len(calls)
+
+
+def _tool_call_count(session: RuntimeSession | dict[str, Any]) -> int:
+    if isinstance(session, RuntimeSession):
+        calls = session.tool_calls
+    else:
+        calls = session.get("tool_calls") or []
+    return len(calls)
+
+
+def _has_parallel_fan_out(session: RuntimeSession | dict[str, Any]) -> bool:
+    if isinstance(session, RuntimeSession):
+        trace = session.workflow_trace
+    else:
+        trace = session.get("workflow_trace") or []
+    return any(bool(step.get("parallel_fan_out")) for step in trace)
+
+
 def _errors(session: RuntimeSession | dict[str, Any]) -> list[str]:
     if isinstance(session, RuntimeSession):
         return list(session.errors)
@@ -130,6 +154,44 @@ def evaluate_runtime_session(
                     f"期望 deliverable 数量 >= {checklist.min_deliverables}，"
                     f"实际: {count}"
                 ),
+            )
+        )
+
+    if checklist.min_model_calls is not None:
+        count = _model_call_count(session)
+        passed = count >= checklist.min_model_calls
+        checks.append(
+            EvalCheckResult(
+                rule="min_model_calls",
+                passed=passed,
+                message=(
+                    f"期望 model 调用次数 >= {checklist.min_model_calls}，"
+                    f"实际: {count}"
+                ),
+            )
+        )
+
+    if checklist.max_tool_calls is not None:
+        count = _tool_call_count(session)
+        passed = count <= checklist.max_tool_calls
+        checks.append(
+            EvalCheckResult(
+                rule="max_tool_calls",
+                passed=passed,
+                message=(
+                    f"期望 tool 调用次数 <= {checklist.max_tool_calls}，"
+                    f"实际: {count}"
+                ),
+            )
+        )
+
+    if checklist.require_parallel_fan_out:
+        passed = _has_parallel_fan_out(session)
+        checks.append(
+            EvalCheckResult(
+                rule="require_parallel_fan_out",
+                passed=passed,
+                message="期望 workflow_trace 中存在 parallel_fan_out 步骤",
             )
         )
 

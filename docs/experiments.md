@@ -30,6 +30,9 @@ pytest app/test/test_eval_checklist.py app/test/test_experiment_exp_001.py -q
 | `exp_001_time_tool` | 用户问「现在几点了？」 | 必须调用 `time_tool`，planner 走 tool 分支 |
 | `exp_002_time_reply_workflow` | 「现在几点了，回复我一句」 | 走 workflow + time_tool；含 control 对照与自动 Diff |
 | `exp_003_ffmpeg_deliverable` | ffmpeg 演示短视频 | 调用 `ffmpeg_artifact_tool` 且登记 deliverable（需本机 ffmpeg） |
+| `exp_004_parallel_pillar` | 基建/业务/数据三线并行 | parallel workflow + `parallel_fan_out`；含 control 对照与 Diff |
+| `exp_005_model_fallback` | 纯问候「你好」 | planner 走 `model`，不调用工具 |
+| `exp_006_multi_module_parallel` | 后端/前端/质量多模块并行 | multi_module parallel workflow + fan-out |
 
 配置文件位于 `backend/app/experiments/`，清单见 `manifest.yaml`。
 
@@ -41,6 +44,23 @@ python -m app.cli experiment run-all --skip-ffmpeg
 python -m app.cli experiment run exp_001_time_tool --no-control
 ```
 
+### HTTP API
+
+```bash
+# 列出内置实验
+curl -s http://127.0.0.1:8000/agent_api/experiments | jq .
+
+# 运行实验（MockModel in-process，无需 LLM）
+curl -s -X POST 'http://127.0.0.1:8000/agent_api/experiments/exp_005_model_fallback/run?include_control=false' | jq .
+
+# 批量运行（默认 compact 响应，不含 runtime_session 大字段）
+curl -s -X POST 'http://127.0.0.1:8000/agent_api/experiments/run-all?skip_ffmpeg=true&compact=true' | jq .
+```
+
+前端 **RuntimeInspector** 左侧面板顶部提供 **Eval Lab**：列出内置实验、单条运行、批量运行（可勾选跳过 ffmpeg）。
+
+`exp_003` 在本机无 ffmpeg 时返回 `503 FFMPEG_UNAVAILABLE`。
+
 ## Checklist 规则
 
 | 规则 | 含义 |
@@ -50,6 +70,9 @@ python -m app.cli experiment run exp_001_time_tool --no-control
 | `planner_action` | `tool` / `model` / `workflow` |
 | `min_workflow_steps` | `workflow_trace` 最少步数 |
 | `min_deliverables` | `deliverables` 最少条数 |
+| `min_model_calls` | `model_calls` 最少次数 |
+| `max_tool_calls` | `tool_calls` 最多次数（含失败调用） |
+| `require_parallel_fan_out` | `workflow_trace` 中至少一步 `parallel_fan_out: true` |
 | `no_errors` | `errors` 为空 |
 | `require_final_output` | 有非空 `final_output` |
 
