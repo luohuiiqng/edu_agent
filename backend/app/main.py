@@ -8,7 +8,7 @@ from fastapi.responses import JSONResponse
 
 from app.routes.chat import router as chat_router
 
-app = FastAPI(title="LearnChainPros Chat API", version="0.1.0")
+app = FastAPI(title="edu_agent Chat API", version="0.1.0")
 # CORS(app)
 # Development CORS config for local frontend. Tighten origins in production.
 app.add_middleware(

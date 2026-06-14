@@ -1,7 +1,7 @@
 # 阶段1详细规划文档（文本聊天 MVP）
 
 ## 1. 文档信息
-- 项目名称：类豆包网页应用
+- 项目名称：edu_agent
 - 阶段名称：阶段1（文本输入 + 文本输出）
 - 前端技术：Vue3 + Vite + TypeScript
 - 后端技术：Python + FastAPI + LangChain（占位接入）
@@ -88,7 +88,7 @@
 ## 6. 项目结构建议
 
 ```text
-learnChainPros/
+edu_agent/
   frontend/
     src/
       components/

@@ -2,11 +2,11 @@
 
 ## 1. 文档目的
 
-本文档基于对 [`student/claw-code-main`](/Users/hqluo/Dev/AgentWorkSpace/learnChainPros/student/claw-code-main) 本地代码的阅读整理而成，目标不是逐文件翻译，而是帮助后续学习时快速理解：
+本文档基于对 [`student/claw-code-main`](/Users/hqluo/Dev/AgentWorkSpace/edu_agent/student/claw-code-main) 本地代码的阅读整理而成，目标不是逐文件翻译，而是帮助后续学习时快速理解：
 
 1. 这个项目到底是什么类型的系统。
 2. 它的主入口、运行时、命令/工具表面、会话与执行链路如何组织。
-3. 它和我们当前 `learnChainPros` 自研 Agent 框架有什么相似点与差异点。
+3. 它和我们当前 `edu_agent` 自研 Agent 框架有什么相似点与差异点。
 4. 哪些设计值得借鉴，哪些只是该项目在“clean-room port / harness 研究”场景下的特殊产物。
 
 ## 2. 先给结论：这不是一个传统“业务 Agent”，更像一个 Harness Runtime / 镜像运行时
@@ -51,17 +51,17 @@ student/claw-code-main/
 
 这是当前最核心的 Python 实现工作区，重点不是做某一个“聊天机器人”，而是把运行时相关概念拆成多个模块：
 
-- 入口与 CLI：[`src/main.py`](/Users/hqluo/Dev/AgentWorkSpace/learnChainPros/student/claw-code-main/src/main.py)
-- 运行时：[`src/runtime.py`](/Users/hqluo/Dev/AgentWorkSpace/learnChainPros/student/claw-code-main/src/runtime.py)
-- 查询引擎 / 会话循环：[`src/query_engine.py`](/Users/hqluo/Dev/AgentWorkSpace/learnChainPros/student/claw-code-main/src/query_engine.py)
-- 命令表面：[`src/commands.py`](/Users/hqluo/Dev/AgentWorkSpace/learnChainPros/student/claw-code-main/src/commands.py)
-- 工具表面：[`src/tools.py`](/Users/hqluo/Dev/AgentWorkSpace/learnChainPros/student/claw-code-main/src/tools.py)
-- 执行注册表：[`src/execution_registry.py`](/Users/hqluo/Dev/AgentWorkSpace/learnChainPros/student/claw-code-main/src/execution_registry.py)
-- 会话持久化：[`src/session_store.py`](/Users/hqluo/Dev/AgentWorkSpace/learnChainPros/student/claw-code-main/src/session_store.py)
-- 转录与历史：[`src/transcript.py`](/Users/hqluo/Dev/AgentWorkSpace/learnChainPros/student/claw-code-main/src/transcript.py), [`src/history.py`](/Users/hqluo/Dev/AgentWorkSpace/learnChainPros/student/claw-code-main/src/history.py)
-- 运行上下文：[`src/context.py`](/Users/hqluo/Dev/AgentWorkSpace/learnChainPros/student/claw-code-main/src/context.py)
-- 权限：[`src/permissions.py`](/Users/hqluo/Dev/AgentWorkSpace/learnChainPros/student/claw-code-main/src/permissions.py)
-- 清单与镜像元数据：[`src/port_manifest.py`](/Users/hqluo/Dev/AgentWorkSpace/learnChainPros/student/claw-code-main/src/port_manifest.py), [`src/models.py`](/Users/hqluo/Dev/AgentWorkSpace/learnChainPros/student/claw-code-main/src/models.py)
+- 入口与 CLI：[`src/main.py`](/Users/hqluo/Dev/AgentWorkSpace/edu_agent/student/claw-code-main/src/main.py)
+- 运行时：[`src/runtime.py`](/Users/hqluo/Dev/AgentWorkSpace/edu_agent/student/claw-code-main/src/runtime.py)
+- 查询引擎 / 会话循环：[`src/query_engine.py`](/Users/hqluo/Dev/AgentWorkSpace/edu_agent/student/claw-code-main/src/query_engine.py)
+- 命令表面：[`src/commands.py`](/Users/hqluo/Dev/AgentWorkSpace/edu_agent/student/claw-code-main/src/commands.py)
+- 工具表面：[`src/tools.py`](/Users/hqluo/Dev/AgentWorkSpace/edu_agent/student/claw-code-main/src/tools.py)
+- 执行注册表：[`src/execution_registry.py`](/Users/hqluo/Dev/AgentWorkSpace/edu_agent/student/claw-code-main/src/execution_registry.py)
+- 会话持久化：[`src/session_store.py`](/Users/hqluo/Dev/AgentWorkSpace/edu_agent/student/claw-code-main/src/session_store.py)
+- 转录与历史：[`src/transcript.py`](/Users/hqluo/Dev/AgentWorkSpace/edu_agent/student/claw-code-main/src/transcript.py), [`src/history.py`](/Users/hqluo/Dev/AgentWorkSpace/edu_agent/student/claw-code-main/src/history.py)
+- 运行上下文：[`src/context.py`](/Users/hqluo/Dev/AgentWorkSpace/edu_agent/student/claw-code-main/src/context.py)
+- 权限：[`src/permissions.py`](/Users/hqluo/Dev/AgentWorkSpace/edu_agent/student/claw-code-main/src/permissions.py)
+- 清单与镜像元数据：[`src/port_manifest.py`](/Users/hqluo/Dev/AgentWorkSpace/edu_agent/student/claw-code-main/src/port_manifest.py), [`src/models.py`](/Users/hqluo/Dev/AgentWorkSpace/edu_agent/student/claw-code-main/src/models.py)
 
 ### 3.2 `rust/`
 
@@ -78,7 +78,7 @@ student/claw-code-main/
 
 ## 4. 入口层：`main.py` 是一个总控 CLI
 
-[`src/main.py`](/Users/hqluo/Dev/AgentWorkSpace/learnChainPros/student/claw-code-main/src/main.py) 是整个 Python 工作区最重要的入口。
+[`src/main.py`](/Users/hqluo/Dev/AgentWorkSpace/edu_agent/student/claw-code-main/src/main.py) 是整个 Python 工作区最重要的入口。
 
 它的特点很鲜明：
 
@@ -124,7 +124,7 @@ student/claw-code-main/
 
 ## 5. 运行时层：`PortRuntime`
 
-[`src/runtime.py`](/Users/hqluo/Dev/AgentWorkSpace/learnChainPros/student/claw-code-main/src/runtime.py) 可以理解成 Python 工作区里的“运行时总协调器”。
+[`src/runtime.py`](/Users/hqluo/Dev/AgentWorkSpace/edu_agent/student/claw-code-main/src/runtime.py) 可以理解成 Python 工作区里的“运行时总协调器”。
 
 它不是一个聊天 Agent，而更像一个：
 
@@ -185,7 +185,7 @@ student/claw-code-main/
 
 ## 6. Query Engine：会话循环与输出组织层
 
-[`src/query_engine.py`](/Users/hqluo/Dev/AgentWorkSpace/learnChainPros/student/claw-code-main/src/query_engine.py) 是另一个核心模块。
+[`src/query_engine.py`](/Users/hqluo/Dev/AgentWorkSpace/edu_agent/student/claw-code-main/src/query_engine.py) 是另一个核心模块。
 
 它更像：
 
@@ -245,11 +245,11 @@ student/claw-code-main/
 
 #### `persist_session()`
 职责：
-- 通过 [`session_store.py`](/Users/hqluo/Dev/AgentWorkSpace/learnChainPros/student/claw-code-main/src/session_store.py) 落盘保存会话
+- 通过 [`session_store.py`](/Users/hqluo/Dev/AgentWorkSpace/edu_agent/student/claw-code-main/src/session_store.py) 落盘保存会话
 
 ## 7. 命令与工具层：不是“真实业务工具”，而是“镜像表面”
 
-[`src/commands.py`](/Users/hqluo/Dev/AgentWorkSpace/learnChainPros/student/claw-code-main/src/commands.py) 和 [`src/tools.py`](/Users/hqluo/Dev/AgentWorkSpace/learnChainPros/student/claw-code-main/src/tools.py) 很值得注意。
+[`src/commands.py`](/Users/hqluo/Dev/AgentWorkSpace/edu_agent/student/claw-code-main/src/commands.py) 和 [`src/tools.py`](/Users/hqluo/Dev/AgentWorkSpace/edu_agent/student/claw-code-main/src/tools.py) 很值得注意。
 
 这两层的关键点不是“实现了很多真实工具逻辑”，而是：
 
@@ -281,7 +281,7 @@ student/claw-code-main/
 
 ## 8. 执行注册表：Execution Registry
 
-[`src/execution_registry.py`](/Users/hqluo/Dev/AgentWorkSpace/learnChainPros/student/claw-code-main/src/execution_registry.py) 的作用非常清楚：
+[`src/execution_registry.py`](/Users/hqluo/Dev/AgentWorkSpace/edu_agent/student/claw-code-main/src/execution_registry.py) 的作用非常清楚：
 
 ## 它是命令/工具执行对象的查找中心
 
@@ -311,7 +311,7 @@ student/claw-code-main/
 
 ### 9.1 `context.py`
 
-[`src/context.py`](/Users/hqluo/Dev/AgentWorkSpace/learnChainPros/student/claw-code-main/src/context.py) 定义了 `PortContext`：
+[`src/context.py`](/Users/hqluo/Dev/AgentWorkSpace/edu_agent/student/claw-code-main/src/context.py) 定义了 `PortContext`：
 
 - `source_root`
 - `tests_root`
@@ -334,7 +334,7 @@ student/claw-code-main/
 
 ### 9.2 `history.py`
 
-[`src/history.py`](/Users/hqluo/Dev/AgentWorkSpace/learnChainPros/student/claw-code-main/src/history.py) 维护了 `HistoryLog`：
+[`src/history.py`](/Users/hqluo/Dev/AgentWorkSpace/edu_agent/student/claw-code-main/src/history.py) 维护了 `HistoryLog`：
 
 - 用事件列表记录关键运行节点
 - 可以渲染成 markdown
@@ -345,7 +345,7 @@ student/claw-code-main/
 
 ### 9.3 `transcript.py`
 
-[`src/transcript.py`](/Users/hqluo/Dev/AgentWorkSpace/learnChainPros/student/claw-code-main/src/transcript.py) 的 `TranscriptStore` 很轻，但职责非常清楚：
+[`src/transcript.py`](/Users/hqluo/Dev/AgentWorkSpace/edu_agent/student/claw-code-main/src/transcript.py) 的 `TranscriptStore` 很轻，但职责非常清楚：
 
 - append
 - compact
@@ -358,7 +358,7 @@ student/claw-code-main/
 
 ### 9.4 `session_store.py`
 
-[`src/session_store.py`](/Users/hqluo/Dev/AgentWorkSpace/learnChainPros/student/claw-code-main/src/session_store.py) 用 JSON 文件保存：
+[`src/session_store.py`](/Users/hqluo/Dev/AgentWorkSpace/edu_agent/student/claw-code-main/src/session_store.py) 用 JSON 文件保存：
 
 - `session_id`
 - `messages`
@@ -376,7 +376,7 @@ student/claw-code-main/
 
 ## 10. 权限层：ToolPermissionContext
 
-[`src/permissions.py`](/Users/hqluo/Dev/AgentWorkSpace/learnChainPros/student/claw-code-main/src/permissions.py) 提供了 `ToolPermissionContext`。
+[`src/permissions.py`](/Users/hqluo/Dev/AgentWorkSpace/edu_agent/student/claw-code-main/src/permissions.py) 提供了 `ToolPermissionContext`。
 
 它的职责是：
 
@@ -453,7 +453,7 @@ CLI(main.py)
    - `port_manifest.py`
    - `reference_data/*`
 
-## 13. 和我们当前 `learnChainPros` 的关键差异
+## 13. 和我们当前 `edu_agent` 的关键差异
 
 ### 13.1 它更偏“runtime/harness 研究工程”
 
@@ -578,19 +578,19 @@ CLI(main.py)
 
 如果后面你想继续系统学习这个项目，我建议按下面顺序看：
 
-1. [`README.md`](/Users/hqluo/Dev/AgentWorkSpace/learnChainPros/student/claw-code-main/README.md)
+1. [`README.md`](/Users/hqluo/Dev/AgentWorkSpace/edu_agent/student/claw-code-main/README.md)
    职责：理解项目定位，不要误判成普通聊天 Agent。
-2. [`src/main.py`](/Users/hqluo/Dev/AgentWorkSpace/learnChainPros/student/claw-code-main/src/main.py)
+2. [`src/main.py`](/Users/hqluo/Dev/AgentWorkSpace/edu_agent/student/claw-code-main/src/main.py)
    职责：看清 CLI surface 和主入口。
-3. [`src/runtime.py`](/Users/hqluo/Dev/AgentWorkSpace/learnChainPros/student/claw-code-main/src/runtime.py)
+3. [`src/runtime.py`](/Users/hqluo/Dev/AgentWorkSpace/edu_agent/student/claw-code-main/src/runtime.py)
    职责：理解高层 orchestration。
-4. [`src/query_engine.py`](/Users/hqluo/Dev/AgentWorkSpace/learnChainPros/student/claw-code-main/src/query_engine.py)
+4. [`src/query_engine.py`](/Users/hqluo/Dev/AgentWorkSpace/edu_agent/student/claw-code-main/src/query_engine.py)
    职责：理解 turn/session/usage/structured output 这一层。
-5. [`src/commands.py`](/Users/hqluo/Dev/AgentWorkSpace/learnChainPros/student/claw-code-main/src/tools.py) 与 [`src/tools.py`](/Users/hqluo/Dev/AgentWorkSpace/learnChainPros/student/claw-code-main/src/tools.py)
+5. [`src/commands.py`](/Users/hqluo/Dev/AgentWorkSpace/edu_agent/student/claw-code-main/src/tools.py) 与 [`src/tools.py`](/Users/hqluo/Dev/AgentWorkSpace/edu_agent/student/claw-code-main/src/tools.py)
    职责：理解 mirrored command/tool surface。
-6. [`src/execution_registry.py`](/Users/hqluo/Dev/AgentWorkSpace/learnChainPros/student/claw-code-main/src/execution_registry.py)
+6. [`src/execution_registry.py`](/Users/hqluo/Dev/AgentWorkSpace/edu_agent/student/claw-code-main/src/execution_registry.py)
    职责：理解 registry 设计。
-7. [`src/context.py`](/Users/hqluo/Dev/AgentWorkSpace/learnChainPros/student/claw-code-main/src/history.py)、[`src/transcript.py`](/Users/hqluo/Dev/AgentWorkSpace/learnChainPros/student/claw-code-main/src/session_store.py)
+7. [`src/context.py`](/Users/hqluo/Dev/AgentWorkSpace/edu_agent/student/claw-code-main/src/history.py)、[`src/transcript.py`](/Users/hqluo/Dev/AgentWorkSpace/edu_agent/student/claw-code-main/src/session_store.py)
    职责：理解 supporting state 层。
 
 ## 17. 一句话总结
@@ -602,7 +602,7 @@ CLI(main.py)
 - 会话、转录、历史、权限、usage 建模较早
 - 一次运行的可观测性比较强
 
-而我们当前 `learnChainPros` 更偏 **自研 Agent 框架主链**，已经在：
+而我们当前 `edu_agent` 更偏 **自研 Agent 框架主链**，已经在：
 
 - Agent
 - Tool

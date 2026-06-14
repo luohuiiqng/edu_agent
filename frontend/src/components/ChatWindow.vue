@@ -108,7 +108,7 @@ onMounted(() => {
       <section class="chat-panel">
         <header class="chat-header">
           <div>
-            <p class="chat-eyebrow">LearnChain Studio</p>
+            <p class="chat-eyebrow">edu_agent</p>
             <h1>Agent Playground</h1>
             <p class="chat-subtitle">一边对话，一边查看 session 与 transcript 的真实运行轨迹。</p>
           </div>

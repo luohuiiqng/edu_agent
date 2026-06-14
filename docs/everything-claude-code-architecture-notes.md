@@ -2,11 +2,11 @@
 
 ## 1. 文档目的
 
-本文档用于记录对 [`student/everything-claude-code`](/Users/hqluo/Dev/AgentWorkSpace/learnChainPros/student/everything-claude-code) 的第一轮学习结论，重点回答：
+本文档用于记录对 [`student/everything-claude-code`](/Users/hqluo/Dev/AgentWorkSpace/edu_agent/student/everything-claude-code) 的第一轮学习结论，重点回答：
 
 1. 这个项目本质上是什么类型的系统。
 2. 它最值得我们借鉴的架构优点有哪些。
-3. 它和我们当前 `learnChainPros` 的差异在哪里。
+3. 它和我们当前 `edu_agent` 的差异在哪里。
 4. 哪些设计值得进入我们后续的 Runtime / Observability 规划。
 
 本文档不是逐文件翻译，而是后续学习和借鉴的“第一张地图”。
@@ -73,7 +73,7 @@ ecc2/
 
 ## 4.1 Skills-first 工作流表面
 
-在 [`AGENTS.md`](/Users/hqluo/Dev/AgentWorkSpace/learnChainPros/student/everything-claude-code/AGENTS.md) 中，它明确提出：
+在 [`AGENTS.md`](/Users/hqluo/Dev/AgentWorkSpace/edu_agent/student/everything-claude-code/AGENTS.md) 中，它明确提出：
 
 - `skills/` 是 canonical workflow surface
 - `commands/` 是 legacy compatibility surface
@@ -126,7 +126,7 @@ ecc2/
 
 ## 4.3 Canonical Session Snapshot / Session Adapter Contract
 
-[`docs/SESSION-ADAPTER-CONTRACT.md`](/Users/hqluo/Dev/AgentWorkSpace/learnChainPros/student/everything-claude-code/docs/SESSION-ADAPTER-CONTRACT.md) 是这个项目最值得我们借鉴的一份文档之一。
+[`docs/SESSION-ADAPTER-CONTRACT.md`](/Users/hqluo/Dev/AgentWorkSpace/edu_agent/student/everything-claude-code/docs/SESSION-ADAPTER-CONTRACT.md) 是这个项目最值得我们借鉴的一份文档之一。
 
 它做的事情不是“保存一个 session 对象”，而是定义：
 
@@ -164,7 +164,7 @@ ecc2/
 
 ## 4.4 Runtime / Control-plane 思维
 
-[`docs/ECC-2.0-REFERENCE-ARCHITECTURE.md`](/Users/hqluo/Dev/AgentWorkSpace/learnChainPros/student/everything-claude-code/docs/ECC-2.0-REFERENCE-ARCHITECTURE.md) 提出了一个更成熟的演进方向：
+[`docs/ECC-2.0-REFERENCE-ARCHITECTURE.md`](/Users/hqluo/Dev/AgentWorkSpace/edu_agent/student/everything-claude-code/docs/ECC-2.0-REFERENCE-ARCHITECTURE.md) 提出了一个更成熟的演进方向：
 
 ```text
 TUI Layer
@@ -226,7 +226,7 @@ Daemon Layer
 
 ## 一个已经进入分发与运营阶段的 agentic platform
 
-## 6. 对 `learnChainPros` 最值得借鉴的设计落点
+## 6. 对 `edu_agent` 最值得借鉴的设计落点
 
 如果只选当前最适合落到我们项目里的几个点，我会推荐：
 

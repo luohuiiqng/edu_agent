@@ -1,4 +1,4 @@
-# `everything-claude-code` 与 `learnChainPros` Runtime 路线对照
+# `everything-claude-code` 与 `edu_agent` Runtime 路线对照
 
 ## 1. 文档目的
 
@@ -9,7 +9,7 @@
 - `Workflow`
 - `Executor`
 
-与 [`student/everything-claude-code`](/Users/hqluo/Dev/AgentWorkSpace/learnChainPros/student/everything-claude-code) 中最值得借鉴的 runtime 设计放到同一张图里。
+与 [`student/everything-claude-code`](/Users/hqluo/Dev/AgentWorkSpace/edu_agent/student/everything-claude-code) 中最值得借鉴的 runtime 设计放到同一张图里。
 
 目标不是照搬对方，而是回答三个问题：
 
@@ -24,7 +24,7 @@
 如果只用一句话概括：
 
 - `everything-claude-code` 已经在思考 **session adapter + canonical snapshot + runtime/control-plane**
-- `learnChainPros` 当前更接近 **内部运行对象 + 最小执行主链**
+- `edu_agent` 当前更接近 **内部运行对象 + 最小执行主链**
 
 也就是说：
 
@@ -46,7 +46,7 @@
 
 ## 3. 当前两边 runtime 关注点对照
 
-## 3.1 `learnChainPros`
+## 3.1 `edu_agent`
 
 我们当前的 runtime 主要在做：
 
@@ -328,7 +328,7 @@ control-plane / replay / monitor / UI
 
 ## 8. 当前阶段补充说明
 
-截至当前阶段，`learnChainPros` 已经不只是“规划 + Workflow + RuntimeSession”：
+截至当前阶段，`edu_agent` 已经不只是“规划 + Workflow + RuntimeSession”：
 
 1. `RuntimeSession` 已能记录单轮输入、规划、`workflow_trace`、工具/模型调用与最终输出。
 2. `TranscriptEntry` 已落地，transcript 记录已从松散 dict 收敛为明确的数据对象。

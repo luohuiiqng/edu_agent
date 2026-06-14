@@ -1,4 +1,4 @@
-"""LearnChainPros CLI：chat / health / sessions / transcript / task。"""
+"""edu_agent CLI：chat / health / sessions / transcript / task。"""
 
 from __future__ import annotations
 
@@ -21,7 +21,7 @@ from app.cli.http_api import (
 def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="lcp",
-        description="LearnChainPros 终端客户端（需先启动后端 HTTP API）",
+        description="edu_agent 终端客户端（需先启动后端 HTTP API）",
     )
     parser.add_argument(
         "--base-url",

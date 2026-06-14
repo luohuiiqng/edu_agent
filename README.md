@@ -1,20 +1,23 @@
-# LearnChainPros
+# edu_agent
 
-本项目当前已经完成一个可运行的最小 Agent 原型，具备以下能力：
+`edu_agent` 是一个面向 Agent 学习与实践的自研 Agent 框架项目，包含 Vue3 前端调试台、FastAPI 后端与可扩展的运行时主链。项目从最小可运行原型起步，逐步演进到具备规划、工作流、异步任务与运行轨迹可观测的完整 Agent 运行时。
 
-- Vue3 前端聊天界面
-- FastAPI 后端聊天接口
-- 自研 Agent 框架最小骨架
+当前已具备以下能力：
+
+- Vue3 前端聊天界面与运行时调试面板
+- FastAPI 后端聊天接口与异步任务 API（提交 / 查询 / 取消 / 日志）
+- 自研 Agent 框架骨架（Agent / Model / Tool / Memory / Planner / Workflow / Runtime）
 - `MockModel` 与真实 `OpenAIModel` 接入
-- 规则版 `ToolRouter` + `ToolRegistry` + `TimeTool`
+- 规则版 `ToolRouter` + `ToolRegistry` + `TimeTool` + `FFmpegArtifactTool`
 - `BaseMemory` 与 `InMemoryMemory` 短期记忆实现
 - 模型分支可读取最近历史消息参与上下文构建
-- `BasePlanner` 与 `RulePlanner` 规则规划能力
-- `BaseWorkflow`、`SequentialWorkflow` 与 `AgentExecutor` 最小工作流执行能力
+- `BasePlanner` 与 `RulePlanner` 规则规划能力（含步骤构建器拆分）
+- `SequentialWorkflow`、`ParallelWorkflow` 与 `AgentExecutor` 工作流执行能力
 - Workflow 支持步骤结果传递，后一步可消费前一步输出
 - `RuntimeSession` 运行快照能力，可记录单轮输入、规划、调用轨迹与最终输出
-- `BaseTranscriptStore` 与 `InMemoryTranscriptStore`，可按 `session_id` 保存多轮运行记录
-- `BaseSessionStore` 与 `InMemorySessionStore`，可管理 session 元信息并在主链中自动建 session
+- `BaseTranscriptStore` / `PersistentTranscriptStore`，可按 `session_id` 保存多轮运行记录
+- `BaseSessionStore` 与内存 / SQLite 持久化实现，可管理 session 元信息并在主链中自动建 session
+- 终端 CLI（`python -m app.cli`）对接 HTTP API，便于本地调试
 - 前后端一问一回联调
 - Docker 化后端部署
 - Nginx 部署前端并代理后端接口
@@ -306,18 +309,19 @@ POST /agent_api/chat
    职责：验证工具分支与模型分支都能记录单轮运行快照，并保留原始 metadata。
 4. `SequentialWorkflow + AgentExecutor`
    职责：验证顺序工作流执行、步骤结果传递与最小执行层联动。
-3. `SequentialWorkflow + AgentExecutor`
-   职责：验证顺序执行、失败中断与步骤结果收集。
-4. `SequentialWorkflow` 的步骤结果传递
-   职责：验证后一步模型 step 可读取前一步工具 step 的输出。
+5. `ParallelWorkflow + WorkflowRunnerRegistry`
+   职责：验证并行工作流注册、调度与步骤聚合。
+6. 异步任务 API + CLI
+   职责：验证后台任务提交、状态查询、日志拉取与终端客户端联调。
 
 ## 目录结构
 
 ```text
-learnChainPros/
-  backend/
-  frontend/
-  docs/
+edu_agent/
+  backend/          # FastAPI 后端与 Agent 框架
+  frontend/         # Vue3 前端调试台
+  docs/             # 设计与对照文档
+  student/          # 参考项目（本地学习用，默认不纳入版本库）
 ```
 
 ## 本地开发
@@ -439,7 +443,7 @@ backend/dockerfile
 ```bash
 docker buildx build \
   --platform linux/amd64 \
-  -t learnchainpros-backend \
+  -t edu-agent-backend \
   -f ./backend/dockerfile \
   ./backend \
   --load
@@ -448,25 +452,25 @@ docker buildx build \
 如果本地和服务器架构一致，也可以直接：
 
 ```bash
-docker build -t learnchainpros-backend -f ./backend/dockerfile ./backend
+docker build -t edu-agent-backend -f ./backend/dockerfile ./backend
 ```
 
 ### 2. 导出镜像
 
 ```bash
-docker save -o learnchainpros-backend.tar learnchainpros-backend
+docker save -o edu-agent-backend.tar edu-agent-backend
 ```
 
 ### 3. 上传镜像到服务器
 
 ```bash
-scp learnchainpros-backend.tar root@<server-ip>:/home/hqluo/learnchain-backend/
+scp edu-agent-backend.tar root@<server-ip>:/home/hqluo/edu-agent/
 ```
 
 ### 4. 服务器导入镜像
 
 ```bash
-docker load -i /home/hqluo/learnchain-backend/learnchainpros-backend.tar
+docker load -i /home/hqluo/edu-agent/edu-agent-backend.tar
 ```
 
 ### 5. 服务器准备 `.env`
@@ -474,7 +478,7 @@ docker load -i /home/hqluo/learnchain-backend/learnchainpros-backend.tar
 服务器上准备：
 
 ```text
-/home/hqluo/learnchain-backend/.env
+/home/hqluo/edu-agent/.env
 ```
 
 内容与本地 `backend/.env` 一致，但不要提交到仓库。
@@ -483,15 +487,15 @@ docker load -i /home/hqluo/learnchain-backend/learnchainpros-backend.tar
 
 ```bash
 docker run -d \
-  --name learnchainpros-backend \
+  --name edu-agent-backend \
   --restart unless-stopped \
-  --env-file /home/hqluo/learnchain-backend/.env \
+  --env-file /home/hqluo/edu-agent/.env \
   -p 127.0.0.1:18000:8000 \
-  learnchainpros-backend
+  edu-agent-backend
 ```
 ### 停止容器：
 ```bash
-docker stop learnchainpros-backend
+docker stop edu-agent-backend
 ```
 
 说明：
@@ -511,7 +515,7 @@ docker exec -it <容器ID或名称> /bin/bash
 查看日志：
 
 ```bash
-docker logs learnchainpros-backend
+docker logs edu-agent-backend
 ```
 
 
@@ -707,22 +711,25 @@ proxy_pass http://127.0.0.1:18000;
 
 ## 当前项目状态
 
-当前项目已经完成：
+当前 `edu_agent` 已经完成：
 
-- 本地前后端一问一回
+- 本地前后端一问一回与运行时快照展示
 - 真实模型调用验证
-- 规则版工具调用链路
+- 规则版工具调用链路与 FFmpeg 媒体工具接入
 - 短期会话记忆写入与读取
 - 历史消息拼接进模型 prompt 的最小多轮上下文能力
+- 顺序 / 并行工作流与异步任务 API
+- 终端 CLI 与 pytest 测试脚本
+- SQLite 持久化 transcript / session 存储
 - Docker 化后端部署验证
 - Nginx 静态前端 + 反向代理后端验证
 
 ## 下一步建议
 
-- 补充更多断言型测试，减少仅靠 `print` 验证
+- 扩展异步任务的流式日志与前端任务面板
 - 优化 Memory 读取策略，例如最近 N 轮裁剪与后续摘要机制
 - 从规则版 ToolRouter 逐步演进到更灵活的工具决策机制
-- 进一步优化错误处理、会话管理与可观测性
+- 完善协作消息、权限与多 Agent 编排能力
 
 ## 上线检查清单
 
@@ -759,7 +766,7 @@ curl -X POST http://127.0.0.1:8000/agent_api/chat \
 3. 容器启动后日志是否正常：
 
 ```bash
-docker logs learnchainpros-backend
+docker logs edu-agent-backend
 ```
 
 4. 容器健康检查是否正常：

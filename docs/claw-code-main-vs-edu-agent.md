@@ -1,8 +1,8 @@
-# `claw-code-main` 与 `learnChainPros` 模块对照表
+# `claw-code-main` 与 `edu_agent` 模块对照表
 
 ## 1. 文档目的
 
-这份文档用于把 [`student/claw-code-main`](/Users/hqluo/Dev/AgentWorkSpace/learnChainPros/student/claw-code-main) 与我们当前的 [`learnChainPros`](/Users/hqluo/Dev/AgentWorkSpace/learnChainPros) 做一个“模块级对照”。
+这份文档用于把 [`student/claw-code-main`](/Users/hqluo/Dev/AgentWorkSpace/edu_agent/student/claw-code-main) 与我们当前的 [`edu_agent`](/Users/hqluo/Dev/AgentWorkSpace/edu_agent) 做一个“模块级对照”。
 
 目标不是判断谁更好，而是帮助后续学习时快速分清：
 
@@ -16,7 +16,7 @@
 如果只用一句话概括：
 
 - `claw-code-main` 当前 Python `src/` 更偏 **runtime / harness / CLI orchestration**
-- `learnChainPros` 当前更偏 **Agent framework 主链抽象与最小可运行能力**
+- `edu_agent` 当前更偏 **Agent framework 主链抽象与最小可运行能力**
 
 也就是说：
 
@@ -43,7 +43,7 @@
 claw-code-main
   CLI / Runtime / QueryEngine / Session / Registry / Permissions
 
-learnChainPros
+edu_agent
   Agent / Prompt / Tool / Memory / Planner / Workflow / Executor
 ```
 
@@ -58,7 +58,7 @@ learnChainPros
 
 #### `claw-code-main`
 
-- [`src/main.py`](/Users/hqluo/Dev/AgentWorkSpace/learnChainPros/student/claw-code-main/src/main.py)
+- [`src/main.py`](/Users/hqluo/Dev/AgentWorkSpace/edu_agent/student/claw-code-main/src/main.py)
 
 职责：
 
@@ -66,11 +66,11 @@ learnChainPros
 - 暴露多种运行模式
 - 作为整个 runtime 的外部入口面
 
-#### `learnChainPros`
+#### `edu_agent`
 
-- [`backend/app/main.py`](/Users/hqluo/Dev/AgentWorkSpace/learnChainPros/backend/app/main.py)
-- [`backend/app/routes/chat.py`](/Users/hqluo/Dev/AgentWorkSpace/learnChainPros/backend/app/routes/chat.py)
-- [`backend/app/services/chat_service.py`](/Users/hqluo/Dev/AgentWorkSpace/learnChainPros/backend/app/services/chat_service.py)
+- [`backend/app/main.py`](/Users/hqluo/Dev/AgentWorkSpace/edu_agent/backend/app/main.py)
+- [`backend/app/routes/chat.py`](/Users/hqluo/Dev/AgentWorkSpace/edu_agent/backend/app/routes/chat.py)
+- [`backend/app/services/chat_service.py`](/Users/hqluo/Dev/AgentWorkSpace/edu_agent/backend/app/services/chat_service.py)
 
 职责：
 
@@ -94,7 +94,7 @@ learnChainPros
 
 #### `claw-code-main`
 
-- [`src/runtime.py`](/Users/hqluo/Dev/AgentWorkSpace/learnChainPros/student/claw-code-main/src/runtime.py)
+- [`src/runtime.py`](/Users/hqluo/Dev/AgentWorkSpace/edu_agent/student/claw-code-main/src/runtime.py)
 
 职责：
 
@@ -104,16 +104,16 @@ learnChainPros
 - 调 query engine
 - 汇总成 `RuntimeSession`
 
-#### `learnChainPros`
+#### `edu_agent`
 
 当前没有一个完全对应的显式 `Runtime` 模块。  
 目前这部分能力散落在：
 
-- [`backend/app/agent/chat_agent.py`](/Users/hqluo/Dev/AgentWorkSpace/learnChainPros/backend/app/agent/chat_agent.py)
-- [`backend/app/services/chat_service.py`](/Users/hqluo/Dev/AgentWorkSpace/learnChainPros/backend/app/services/chat_service.py)
-- [`backend/app/planners/rule_planner.py`](/Users/hqluo/Dev/AgentWorkSpace/learnChainPros/backend/app/planners/rule_planner.py)
-- [`backend/app/workflows/sequential_workflow.py`](/Users/hqluo/Dev/AgentWorkSpace/learnChainPros/backend/app/workflows/sequential_workflow.py)
-- [`backend/app/workflows/agent_executor.py`](/Users/hqluo/Dev/AgentWorkSpace/learnChainPros/backend/app/workflows/agent_executor.py)
+- [`backend/app/agent/chat_agent.py`](/Users/hqluo/Dev/AgentWorkSpace/edu_agent/backend/app/agent/chat_agent.py)
+- [`backend/app/services/chat_service.py`](/Users/hqluo/Dev/AgentWorkSpace/edu_agent/backend/app/services/chat_service.py)
+- [`backend/app/planners/rule_planner.py`](/Users/hqluo/Dev/AgentWorkSpace/edu_agent/backend/app/planners/rule_planner.py)
+- [`backend/app/workflows/sequential_workflow.py`](/Users/hqluo/Dev/AgentWorkSpace/edu_agent/backend/app/workflows/sequential_workflow.py)
+- [`backend/app/workflows/agent_executor.py`](/Users/hqluo/Dev/AgentWorkSpace/edu_agent/backend/app/workflows/agent_executor.py)
 
 #### 对照结论
 
@@ -143,7 +143,7 @@ learnChainPros
 
 #### `claw-code-main`
 
-- [`src/query_engine.py`](/Users/hqluo/Dev/AgentWorkSpace/learnChainPros/student/claw-code-main/src/query_engine.py)
+- [`src/query_engine.py`](/Users/hqluo/Dev/AgentWorkSpace/edu_agent/student/claw-code-main/src/query_engine.py)
 
 职责：
 
@@ -153,7 +153,7 @@ learnChainPros
 - transcript compact
 - stop reason 管理
 
-#### `learnChainPros`
+#### `edu_agent`
 
 当前没有显式独立的 `QueryEngine` 层。  
 类似职责目前散落在：
@@ -191,10 +191,10 @@ learnChainPros
 
 它更像 runtime orchestrator + mirrored inventories 的组合。
 
-#### `learnChainPros`
+#### `edu_agent`
 
-- [`backend/app/agent/base_agent.py`](/Users/hqluo/Dev/AgentWorkSpace/learnChainPros/backend/app/agent/base_agent.py)
-- [`backend/app/agent/chat_agent.py`](/Users/hqluo/Dev/AgentWorkSpace/learnChainPros/backend/app/agent/chat_agent.py)
+- [`backend/app/agent/base_agent.py`](/Users/hqluo/Dev/AgentWorkSpace/edu_agent/backend/app/agent/base_agent.py)
+- [`backend/app/agent/chat_agent.py`](/Users/hqluo/Dev/AgentWorkSpace/edu_agent/backend/app/agent/chat_agent.py)
 
 职责：
 
@@ -220,10 +220,10 @@ learnChainPros
 
 更多是把输出组织、summary lines、structured output 放在 `QueryEnginePort` 里。
 
-#### `learnChainPros`
+#### `edu_agent`
 
-- [`backend/app/prompts/base_prompt.py`](/Users/hqluo/Dev/AgentWorkSpace/learnChainPros/backend/app/prompts/base_prompt.py)
-- [`backend/app/prompts/prompt_builder.py`](/Users/hqluo/Dev/AgentWorkSpace/learnChainPros/backend/app/prompts/prompt_builder.py)
+- [`backend/app/prompts/base_prompt.py`](/Users/hqluo/Dev/AgentWorkSpace/edu_agent/backend/app/prompts/base_prompt.py)
+- [`backend/app/prompts/prompt_builder.py`](/Users/hqluo/Dev/AgentWorkSpace/edu_agent/backend/app/prompts/prompt_builder.py)
 
 职责：
 
@@ -242,8 +242,8 @@ learnChainPros
 
 #### `claw-code-main`
 
-- [`src/tools.py`](/Users/hqluo/Dev/AgentWorkSpace/learnChainPros/student/claw-code-main/src/tools.py)
-- [`src/execution_registry.py`](/Users/hqluo/Dev/AgentWorkSpace/learnChainPros/student/claw-code-main/src/execution_registry.py)
+- [`src/tools.py`](/Users/hqluo/Dev/AgentWorkSpace/edu_agent/student/claw-code-main/src/tools.py)
+- [`src/execution_registry.py`](/Users/hqluo/Dev/AgentWorkSpace/edu_agent/student/claw-code-main/src/execution_registry.py)
 
 特点：
 
@@ -251,12 +251,12 @@ learnChainPros
 - 当前更偏 registry/index/surface
 - `execute_tool(...)` 返回“哪个工具会处理该 payload”的 message
 
-#### `learnChainPros`
+#### `edu_agent`
 
-- [`backend/app/tools/base_tool.py`](/Users/hqluo/Dev/AgentWorkSpace/learnChainPros/backend/app/tools/base_tool.py)
-- [`backend/app/tools/time_tool.py`](/Users/hqluo/Dev/AgentWorkSpace/learnChainPros/backend/app/tools/time_tool.py)
-- [`backend/app/tools/tool_registry.py`](/Users/hqluo/Dev/AgentWorkSpace/learnChainPros/backend/app/tools/tool_registry.py)
-- [`backend/app/tools/tool_router.py`](/Users/hqluo/Dev/AgentWorkSpace/learnChainPros/backend/app/tools/tool_router.py)
+- [`backend/app/tools/base_tool.py`](/Users/hqluo/Dev/AgentWorkSpace/edu_agent/backend/app/tools/base_tool.py)
+- [`backend/app/tools/time_tool.py`](/Users/hqluo/Dev/AgentWorkSpace/edu_agent/backend/app/tools/time_tool.py)
+- [`backend/app/tools/tool_registry.py`](/Users/hqluo/Dev/AgentWorkSpace/edu_agent/backend/app/tools/tool_registry.py)
+- [`backend/app/tools/tool_router.py`](/Users/hqluo/Dev/AgentWorkSpace/edu_agent/backend/app/tools/tool_router.py)
 
 特点：
 
@@ -285,10 +285,10 @@ learnChainPros
 
 但它的 runtime routing 和 query engine 已经体现了一些“执行前先分流”的思想。
 
-#### `learnChainPros`
+#### `edu_agent`
 
-- [`backend/app/planners/base_planner.py`](/Users/hqluo/Dev/AgentWorkSpace/learnChainPros/backend/app/planners/base_planner.py)
-- [`backend/app/planners/rule_planner.py`](/Users/hqluo/Dev/AgentWorkSpace/learnChainPros/backend/app/planners/rule_planner.py)
+- [`backend/app/planners/base_planner.py`](/Users/hqluo/Dev/AgentWorkSpace/edu_agent/backend/app/planners/base_planner.py)
+- [`backend/app/planners/rule_planner.py`](/Users/hqluo/Dev/AgentWorkSpace/edu_agent/backend/app/planners/rule_planner.py)
 
 职责：
 
@@ -318,12 +318,12 @@ learnChainPros
 - `BaseExecutor`
 - `AgentExecutor`
 
-#### `learnChainPros`
+#### `edu_agent`
 
-- [`backend/app/workflows/base_workflow.py`](/Users/hqluo/Dev/AgentWorkSpace/learnChainPros/backend/app/workflows/base_workflow.py)
-- [`backend/app/workflows/sequential_workflow.py`](/Users/hqluo/Dev/AgentWorkSpace/learnChainPros/backend/app/workflows/sequential_workflow.py)
-- [`backend/app/workflows/base_executor.py`](/Users/hqluo/Dev/AgentWorkSpace/learnChainPros/backend/app/workflows/base_executor.py)
-- [`backend/app/workflows/agent_executor.py`](/Users/hqluo/Dev/AgentWorkSpace/learnChainPros/backend/app/workflows/agent_executor.py)
+- [`backend/app/workflows/base_workflow.py`](/Users/hqluo/Dev/AgentWorkSpace/edu_agent/backend/app/workflows/base_workflow.py)
+- [`backend/app/workflows/sequential_workflow.py`](/Users/hqluo/Dev/AgentWorkSpace/edu_agent/backend/app/workflows/sequential_workflow.py)
+- [`backend/app/workflows/base_executor.py`](/Users/hqluo/Dev/AgentWorkSpace/edu_agent/backend/app/workflows/base_executor.py)
+- [`backend/app/workflows/agent_executor.py`](/Users/hqluo/Dev/AgentWorkSpace/edu_agent/backend/app/workflows/agent_executor.py)
 
 职责：
 
@@ -345,9 +345,9 @@ learnChainPros
 
 #### `claw-code-main`
 
-- [`src/transcript.py`](/Users/hqluo/Dev/AgentWorkSpace/learnChainPros/student/claw-code-main/src/transcript.py)
-- [`src/session_store.py`](/Users/hqluo/Dev/AgentWorkSpace/learnChainPros/student/claw-code-main/src/session_store.py)
-- [`src/history.py`](/Users/hqluo/Dev/AgentWorkSpace/learnChainPros/student/claw-code-main/src/history.py)
+- [`src/transcript.py`](/Users/hqluo/Dev/AgentWorkSpace/edu_agent/student/claw-code-main/src/transcript.py)
+- [`src/session_store.py`](/Users/hqluo/Dev/AgentWorkSpace/edu_agent/student/claw-code-main/src/session_store.py)
+- [`src/history.py`](/Users/hqluo/Dev/AgentWorkSpace/edu_agent/student/claw-code-main/src/history.py)
 
 职责分得很清楚：
 
@@ -355,7 +355,7 @@ learnChainPros
 - `SessionStore`：持久化 session
 - `HistoryLog`：运行历史事件
 
-#### `learnChainPros`
+#### `edu_agent`
 
 目前相关能力分散在：
 
@@ -377,14 +377,14 @@ learnChainPros
 
 #### `claw-code-main`
 
-- [`src/permissions.py`](/Users/hqluo/Dev/AgentWorkSpace/learnChainPros/student/claw-code-main/src/permissions.py)
+- [`src/permissions.py`](/Users/hqluo/Dev/AgentWorkSpace/edu_agent/student/claw-code-main/src/permissions.py)
 
 通过 `ToolPermissionContext` 管理：
 
 - deny names
 - deny prefixes
 
-#### `learnChainPros`
+#### `edu_agent`
 
 目前还没有正式独立的 permission/policy 层。
 
@@ -405,8 +405,8 @@ learnChainPros
 
 #### `claw-code-main`
 
-- [`src/port_manifest.py`](/Users/hqluo/Dev/AgentWorkSpace/learnChainPros/student/claw-code-main/src/port_manifest.py)
-- [`src/models.py`](/Users/hqluo/Dev/AgentWorkSpace/learnChainPros/student/claw-code-main/src/models.py)
+- [`src/port_manifest.py`](/Users/hqluo/Dev/AgentWorkSpace/edu_agent/student/claw-code-main/src/port_manifest.py)
+- [`src/models.py`](/Users/hqluo/Dev/AgentWorkSpace/edu_agent/student/claw-code-main/src/models.py)
 
 它非常强调：
 
@@ -414,7 +414,7 @@ learnChainPros
 - subsystem summary
 - mirrored backlog
 
-#### `learnChainPros`
+#### `edu_agent`
 
 目前我们还没有一个统一的：
 
@@ -433,7 +433,7 @@ learnChainPros
 ### 第一优先级：`RuntimeSession` / 运行总报告
 对应来源：
 
-- [`src/runtime.py`](/Users/hqluo/Dev/AgentWorkSpace/learnChainPros/student/claw-code-main/src/runtime.py)
+- [`src/runtime.py`](/Users/hqluo/Dev/AgentWorkSpace/edu_agent/student/claw-code-main/src/runtime.py)
 
 我们可以借鉴的方向：
 
@@ -449,9 +449,9 @@ learnChainPros
 ### 第二优先级：`TranscriptStore / SessionStore / HistoryLog`
 对应来源：
 
-- [`src/transcript.py`](/Users/hqluo/Dev/AgentWorkSpace/learnChainPros/student/claw-code-main/src/transcript.py)
-- [`src/session_store.py`](/Users/hqluo/Dev/AgentWorkSpace/learnChainPros/student/claw-code-main/src/session_store.py)
-- [`src/history.py`](/Users/hqluo/Dev/AgentWorkSpace/learnChainPros/student/claw-code-main/src/history.py)
+- [`src/transcript.py`](/Users/hqluo/Dev/AgentWorkSpace/edu_agent/student/claw-code-main/src/transcript.py)
+- [`src/session_store.py`](/Users/hqluo/Dev/AgentWorkSpace/edu_agent/student/claw-code-main/src/session_store.py)
+- [`src/history.py`](/Users/hqluo/Dev/AgentWorkSpace/edu_agent/student/claw-code-main/src/history.py)
 
 我们可以借鉴的方向：
 
@@ -460,7 +460,7 @@ learnChainPros
 ### 第三优先级：`ExecutionRegistry`
 对应来源：
 
-- [`src/execution_registry.py`](/Users/hqluo/Dev/AgentWorkSpace/learnChainPros/student/claw-code-main/src/execution_registry.py)
+- [`src/execution_registry.py`](/Users/hqluo/Dev/AgentWorkSpace/edu_agent/student/claw-code-main/src/execution_registry.py)
 
 我们可以借鉴的方向：
 
@@ -469,7 +469,7 @@ learnChainPros
 ### 第四优先级：`ToolPermissionContext`
 对应来源：
 
-- [`src/permissions.py`](/Users/hqluo/Dev/AgentWorkSpace/learnChainPros/student/claw-code-main/src/permissions.py)
+- [`src/permissions.py`](/Users/hqluo/Dev/AgentWorkSpace/edu_agent/student/claw-code-main/src/permissions.py)
 
 我们可以借鉴的方向：
 
