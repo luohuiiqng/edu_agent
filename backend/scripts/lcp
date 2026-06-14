@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+# LearnChainPros CLI 快捷入口（等价于 cd backend && PYTHONPATH=. python -m app.cli）
+set -euo pipefail
+DIR="$(cd "$(dirname "$0")/.." && pwd)"
+cd "$DIR"
+export PYTHONPATH="${DIR}${PYTHONPATH:+:$PYTHONPATH}"
+exec python -m app.cli "$@"

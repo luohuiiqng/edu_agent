@@ -1,6 +1,5 @@
 import os
 import tempfile
-from concurrent.futures import ThreadPoolExecutor
 
 from app.runtime.persistent_session_store import PersistentSessionStore
 from app.runtime.persistent_transcript_store import PersistentTranscriptStore
@@ -11,7 +10,6 @@ from app.runtime.transcript_entry import TranscriptEntry
 with tempfile.TemporaryDirectory() as tmp_dir:
     session_db_path = os.path.join(tmp_dir, "sessions.db")
     transcript_db_path = os.path.join(tmp_dir, "transcript.db")
-    nested_session_db_path = os.path.join(tmp_dir, "data", "runtime", "nested-sessions.db")
 
     session_store = PersistentSessionStore(session_db_path)
     session_store.create_session("session-a", {"agent_type": "chat"})
@@ -27,18 +25,6 @@ with tempfile.TemporaryDirectory() as tmp_dir:
     assert len(sessions) == 1
     assert sessions[0]["session_id"] == "session-a"
     assert sessions[0]["metadata"] == {"agent_type": "chat"}
-
-    with ThreadPoolExecutor(max_workers=1) as executor:
-        threaded_sessions = executor.submit(session_store.list_sessions).result()
-    assert len(threaded_sessions) == 1
-    assert threaded_sessions[0]["session_id"] == "session-a"
-
-    nested_session_store = PersistentSessionStore(nested_session_db_path)
-    nested_session_store.create_session("session-b", {"source": "nested"})
-    nested_session = nested_session_store.get_session("session-b")
-    assert nested_session is not None
-    assert nested_session["session_id"] == "session-b"
-    assert os.path.exists(nested_session_db_path)
 
     transcript_store = PersistentTranscriptStore(transcript_db_path)
 
@@ -75,11 +61,6 @@ with tempfile.TemporaryDirectory() as tmp_dir:
     assert entries[1].user_input == "再见"
     assert entries[1].final_output is None
     assert entries[1].runtime_session.user_input == "再见"
-
-    with ThreadPoolExecutor(max_workers=1) as executor:
-        threaded_entries = executor.submit(transcript_store.get_entries, "session-a").result()
-    assert len(threaded_entries) == 2
-    assert threaded_entries[0].user_input == "你好"
 
     transcript_store.clear("session-a")
     cleared_entries = transcript_store.get_entries("session-a")

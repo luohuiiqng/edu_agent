@@ -18,6 +18,9 @@ assert runtime_session.tool_calls == []
 assert runtime_session.model_calls == []
 assert runtime_session.final_output is None
 assert runtime_session.errors == []
+assert runtime_session.workflow_trace == []
+assert runtime_session.collaboration_trace == []
+assert runtime_session.deliverables == []
 
 
 # 可变字段隔离场景
@@ -49,5 +52,15 @@ assert runtime_session_a.errors == ["mock error"]
 assert runtime_session_b.tool_calls == []
 assert runtime_session_b.model_calls == []
 assert runtime_session_b.errors == []
+
+rs_collab = RuntimeSession(session_id="c1", user_input="课题测试")
+rs_collab.add_collaboration_event(
+    agent_role="调研员",
+    phase="gather",
+    summary="完成要点摘录",
+    step_name="s1",
+)
+assert len(rs_collab.collaboration_trace) == 1
+assert rs_collab.collaboration_trace[0]["agent_role"] == "调研员"
 
 print("runtime session tests passed")

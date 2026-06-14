@@ -74,16 +74,23 @@ class PersistentTranscriptStore(BaseTranscriptStore):
         for row in rows:
             runtime_session_data = json.loads(row[5])
             runtime_session = RuntimeSession(
-                session_id=runtime_session_data["session_id"],
-                user_input=runtime_session_data["user_input"],
+                session_id=runtime_session_data.get("session_id", ""),
+                user_input=runtime_session_data.get("user_input", ""),
             )
-            runtime_session.planner_result = runtime_session_data["planner_result"]
-            runtime_session.workflow_result = runtime_session_data["workflow_result"]
-            runtime_session.tool_calls = runtime_session_data["tool_calls"]
-            runtime_session.model_calls = runtime_session_data["model_calls"]
-            runtime_session.workflow_trace = runtime_session_data["workflow_trace"]
-            runtime_session.final_output = runtime_session_data["final_output"]
-            runtime_session.errors = runtime_session_data["errors"]
+            runtime_session.task_id = runtime_session_data.get("task_id")
+            runtime_session.planner_result = runtime_session_data.get("planner_result")
+            runtime_session.workflow_result = runtime_session_data.get("workflow_result")
+            runtime_session.tool_calls = runtime_session_data.get("tool_calls", [])
+            runtime_session.model_calls = runtime_session_data.get("model_calls", [])
+            runtime_session.workflow_trace = runtime_session_data.get(
+                "workflow_trace", []
+            )
+            runtime_session.collaboration_trace = runtime_session_data.get(
+                "collaboration_trace", []
+            )
+            runtime_session.deliverables = runtime_session_data.get("deliverables", [])
+            runtime_session.final_output = runtime_session_data.get("final_output")
+            runtime_session.errors = runtime_session_data.get("errors", [])
 
             entries.append(
                 TranscriptEntry(

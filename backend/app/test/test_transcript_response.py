@@ -24,6 +24,8 @@ runtime_session.add_workflow_step_trace(
     action="model",
     success=True,
     output="你好呀",
+    input_summary="prompt=你好",
+    output_summary="你好呀",
     error=None,
 )
 runtime_session.final_output = "你好呀"
@@ -38,6 +40,8 @@ assert runtime_snapshot.workflow_result == {"status": "done"}
 assert len(runtime_snapshot.tool_calls) == 1
 assert len(runtime_snapshot.model_calls) == 1
 assert len(runtime_snapshot.workflow_trace) == 1
+assert runtime_snapshot.collaboration_trace == []
+assert runtime_snapshot.deliverables == []
 assert runtime_snapshot.final_output == "你好呀"
 assert runtime_snapshot.errors == ["mock warning"]
 

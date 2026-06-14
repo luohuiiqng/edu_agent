@@ -37,12 +37,18 @@ const emit = defineEmits<{
 }>();
 
 // Centralized append function keeps message structure consistent.
-function appendMessage(role: ChatMessage["role"], content: string, timestamp = new Date().toISOString()) {
+function appendMessage(
+  role: ChatMessage["role"],
+  content: string,
+  timestamp = new Date().toISOString(),
+  runtime_session?: ChatMessage["runtime_session"],
+) {
   messages.value.push({
     id: createMessageId(),
     role,
     content,
     timestamp,
+    ...(runtime_session ? { runtime_session } : {}),
   });
 }
 
@@ -76,7 +82,7 @@ async function handleSend(text: string) {
     sessionId.value = result.session_id;
     inspectSessionId.value = result.session_id;
     inspectorRefreshKey.value += 1;
-    appendMessage("assistant", result.reply, result.timestamp);
+    appendMessage("assistant", result.reply, result.timestamp, result.runtime_session);
   } catch (error) {
     const message = error instanceof Error ? error.message : "网络连接失败，请稍后重试";
     errorText.value = message;

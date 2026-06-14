@@ -96,7 +96,8 @@ tool_entry_runtime = assert_transcript_entry_shape(
     expected_user_input="现在几点了？",
     expected_output=tool_output.content or "",
 )
-assert tool_entry_runtime.planner_result == {"action": "tool", "tool_name": "time_tool"}
+assert tool_entry_runtime.planner_result["action"] == "tool"
+assert tool_entry_runtime.planner_result["tool_name"] == "time_tool"
 assert len(tool_entry_runtime.tool_calls) == 1
 assert tool_entry_runtime.model_calls == []
 
@@ -105,7 +106,7 @@ model_entry_runtime = assert_transcript_entry_shape(
     expected_user_input="你好",
     expected_output=model_output.content or "",
 )
-assert model_entry_runtime.planner_result == {"action": "model"}
+assert model_entry_runtime.planner_result["action"] == "model"
 assert model_entry_runtime.tool_calls == []
 assert len(model_entry_runtime.model_calls) == 1
 
@@ -137,9 +138,10 @@ workflow_runtime = assert_transcript_entry_shape(
     expected_output=workflow_output.content or "",
 )
 assert workflow_runtime.planner_result["action"] == "workflow"
-assert len(workflow_runtime.workflow_trace) == 2
-assert workflow_runtime.workflow_trace[0]["action"] == "tool"
-assert workflow_runtime.workflow_trace[1]["action"] == "model"
+assert len(workflow_runtime.workflow_trace) == 3
+assert workflow_runtime.workflow_trace[0]["step_name"] == "planner"
+assert workflow_runtime.workflow_trace[1]["action"] == "tool"
+assert workflow_runtime.workflow_trace[2]["action"] == "model"
 assert len(workflow_runtime.tool_calls) == 1
 assert len(workflow_runtime.model_calls) == 1
 assert workflow_runtime.model_calls[0]["prompt"]

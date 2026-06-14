@@ -1019,6 +1019,32 @@ watch(
             </article>
 
             <article
+              v-if="(entry.runtime_session.collaboration_trace?.length ?? 0) > 0"
+              class="runtime-group"
+            >
+              <header>
+                <h4>协作轨迹</h4>
+                <span>{{ entry.runtime_session.collaboration_trace?.length ?? 0 }} 条</span>
+              </header>
+              <pre class="runtime-code">{{
+                JSON.stringify(entry.runtime_session.collaboration_trace, null, 2)
+              }}</pre>
+            </article>
+
+            <article
+              v-if="(entry.runtime_session.deliverables?.length ?? 0) > 0"
+              class="runtime-group"
+            >
+              <header>
+                <h4>成果交付</h4>
+                <span>{{ entry.runtime_session.deliverables?.length ?? 0 }} 条</span>
+              </header>
+              <pre class="runtime-code">{{
+                JSON.stringify(entry.runtime_session.deliverables, null, 2)
+              }}</pre>
+            </article>
+
+            <article
               v-if="entry.runtime_session.errors.length > 0"
               class="runtime-group runtime-errors"
             >

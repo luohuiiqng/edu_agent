@@ -21,9 +21,10 @@ class AgentExecutor(BaseExecutor):
         error: str | None,
         input_summary: str,
         output_summary: str,
+        metadata: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         """构建执行结果"""
-        return {
+        row: dict[str, Any] = {
             "step_name": step_name,
             "action": action,
             "success": success,
@@ -32,6 +33,9 @@ class AgentExecutor(BaseExecutor):
             "input_summary": input_summary,
             "output_summary": output_summary,
         }
+        if metadata:
+            row["metadata"] = metadata
+        return row
     def execute_step(self,step:Any,context:Any=None)->dict[str,Any]:
         action = step.get("action","unknown")
         step_name = step.get("step_name","unknown")
@@ -71,6 +75,7 @@ class AgentExecutor(BaseExecutor):
                     error=tool_output.error_message,
                     input_summary=input_summary,
                     output_summary=f"tool returned: {tool_output.content}",
+                    metadata=tool_output.metadata or None,
                 )
         elif action == "model":
             if self._model is None:
@@ -86,8 +91,59 @@ class AgentExecutor(BaseExecutor):
             prompt = step.get("prompt", "")
             prompt_template = step.get("prompt_template")
             use_step_result = step.get("use_step_result")
+            use_step_result_keys = step.get("use_step_result_keys")
 
-            if prompt_template and use_step_result:
+            if prompt_template and use_step_result_keys:
+                if context is None:
+                    return self._build_step_result(
+                        step_name=step_name,
+                        action=action,
+                        success=False,
+                        output=None,
+                        error="context is not provided for prompt template",
+                        input_summary=f"prompt_template={prompt_template}",
+                        output_summary="missing context",
+                    )
+                step_results = context.get("step_results", {})
+                parts: dict[str, Any] = {}
+                key_list = use_step_result_keys
+                if not isinstance(key_list, list):
+                    return self._build_step_result(
+                        step_name=step_name,
+                        action=action,
+                        success=False,
+                        output=None,
+                        error="use_step_result_keys must be a list",
+                        input_summary=str(use_step_result_keys),
+                        output_summary="invalid keys type",
+                    )
+                for key in key_list:
+                    ks = str(key)
+                    previous_result = step_results.get(ks)
+                    if previous_result is None:
+                        return self._build_step_result(
+                            step_name=step_name,
+                            action=action,
+                            success=False,
+                            output=None,
+                            error=f"no step result found for key: {ks}",
+                            input_summary=f"depends_on={key_list}",
+                            output_summary="dependency missing",
+                        )
+                    parts[ks] = previous_result.get("output")
+                try:
+                    prompt = prompt_template.format(**parts)
+                except KeyError as e:
+                    return self._build_step_result(
+                        step_name=step_name,
+                        action=action,
+                        success=False,
+                        output=None,
+                        error=f"prompt_template placeholder mismatch: {e}",
+                        input_summary=f"prompt_template={prompt_template}",
+                        output_summary="format KeyError",
+                    )
+            elif prompt_template and use_step_result:
                 if context is None:
                     return self._build_step_result(
                         step_name=step_name,

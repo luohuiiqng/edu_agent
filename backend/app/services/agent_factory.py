@@ -8,6 +8,7 @@ from app.prompts.prompt_builder import PromptBuilder
 from app.runtime.in_memory_session_store import InMemorySessionStore
 from app.runtime.in_memory_transcript_store import InMemoryTranscriptStore
 from app.runtime.runtime_manager import RuntimeManager
+from app.tools.ffmpeg_artifact_tool import FfmpegArtifactTool
 from app.tools.time_tool import TimeTool
 from app.tools.tool_registry import ToolRegistry
 from app.tools.tool_router import ToolRouter
@@ -58,9 +59,15 @@ class AgentFactory:
         tool_router = ToolRouter()
         time_tool = TimeTool()
         tool_registry.register_tool(time_tool)
+        ffmpeg_tool = FfmpegArtifactTool()
+        tool_registry.register_tool(ffmpeg_tool)
         tool_router.add_rule(
             time_tool.get_name(),
             ["现在时间", "当前时间", "现在日期", "当前日期", "now time", "now date"],
+        )
+        tool_router.add_rule(
+            ffmpeg_tool.get_name(),
+            ["ffmpeg样例", "静音视频样例", "演示短视频", "ffmpeg演示"],
         )
         planner = RulePlanner(tool_router=tool_router)
 

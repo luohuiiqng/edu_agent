@@ -21,6 +21,8 @@ runtime_session.add_workflow_step_trace(
     action="model",
     success=True,
     output="你好呀",
+    input_summary="prompt=你好",
+    output_summary="你好呀",
     error=None,
 )
 runtime_session.final_output = "你好呀"
@@ -54,6 +56,8 @@ assert len(runtime_session_dict["model_calls"]) == 1
 assert runtime_session_dict["model_calls"][0]["prompt"] == "你好"
 assert len(runtime_session_dict["workflow_trace"]) == 1
 assert runtime_session_dict["workflow_trace"][0]["step_name"] == "generate_reply"
+assert runtime_session_dict.get("collaboration_trace") == []
+assert runtime_session_dict.get("deliverables") == []
 assert runtime_session_dict["final_output"] == "你好呀"
 assert runtime_session_dict["errors"] == ["mock warning"]
 

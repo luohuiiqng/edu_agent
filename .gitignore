@@ -37,6 +37,8 @@ venv/
 # Backend build artifacts
 backend/.venv/
 backend/venv/
+# ffmpeg / runtime generated media
+backend/data/artifacts/
 
 # Node / Frontend
 node_modules/

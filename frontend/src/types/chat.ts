@@ -5,6 +5,8 @@ export interface ChatMessage {
   role: MessageRole;
   content: string;
   timestamp: string;
+  /** 本轮后端返回的快照，用于展示协作 / 成果（可选） */
+  runtime_session?: RuntimeSessionSnapshot;
 }
 
 export interface ChatRequest {
@@ -16,6 +18,7 @@ export interface ChatResponse {
   reply: string;
   session_id: string;
   timestamp: string;
+  runtime_session?: RuntimeSessionSnapshot;
 }
 
 export interface SessionResponse {
@@ -33,6 +36,8 @@ export interface RuntimeSessionSnapshot {
   tool_calls: Array<Record<string, unknown>>;
   model_calls: Array<Record<string, unknown>>;
   workflow_trace: Array<Record<string, unknown>>;
+  collaboration_trace?: Array<Record<string, unknown>>;
+  deliverables?: Array<Record<string, unknown>>;
   final_output: string | null;
   errors: string[];
 }

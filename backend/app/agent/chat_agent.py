@@ -13,9 +13,11 @@ from app.prompts.prompt_builder import PromptBuilder
 from app.prompts.base_prompt import BasePrompt
 from app.planners.base_planner import BasePlanner
 from app.runtime.runtime_session import RuntimeSession
-from app.workflows.sequential_workflow import SequentialWorkflow
 from app.workflows.agent_executor import AgentExecutor
+from app.workflows.workflow_runner_registry import get_workflow_runner
+from app.workflows.workflow_steps import flatten_steps_for_trace
 from app.runtime.runtime_manager import RuntimeManager
+from app.schemas.collaboration import deliverable_dict
 
 
 class ChatAgent(BaseAgent):
@@ -82,32 +84,51 @@ class ChatAgent(BaseAgent):
         plan: dict[str, Any],
         runtime_session: RuntimeSession,
     ) -> AgentOutput:
-        sequential_workflow = SequentialWorkflow()
+        workflow_runner = get_workflow_runner(plan.get("workflow_kind"))
         agent_executor = AgentExecutor(
             model=self._model,
             tool_registry=self._tool_registry,
         )
-        workflow_output = sequential_workflow.run(
+        workflow_output = workflow_runner.run(
             steps=plan.get("steps", []),
             executor=agent_executor,
             context=plan.get("context", {}),
         )
-        runtime_session.workflow_result = workflow_output
+        merged_output = dict(workflow_output)
+        merged_output["runner_class"] = workflow_runner.__class__.__name__
+        runtime_session.workflow_result = merged_output
+        workflow_output = merged_output
         results = workflow_output.get("results", [])
+        flat_steps = flatten_steps_for_trace(plan.get("steps", []))
         for result in results:
             step_name = result.get("step_name", "unknown")
-            for step in plan.get("steps", []):
+            for step in flat_steps:
                 if step.get("step_name", "unknown") == step_name:
                     action = result.get("action", step.get("action", "unknown"))
+                    agent_role = step.get("agent_role")
+                    trace_extra: dict[str, Any] | None = None
+                    if result.get("parallel_fan_out"):
+                        trace_extra = {"parallel_fan_out": True}
                     runtime_session.add_workflow_step_trace(
                         step_name=result.get("step_name", "unknown"),
                         action=action,
                         success=result.get("success", False),
                         output=result.get("output", ""),
-                        error=result.get("error", None),
                         input_summary=result.get("input_summary", ""),
                         output_summary=result.get("output_summary", ""),
+                        error=result.get("error", None),
+                        agent_role=agent_role if agent_role else None,
+                        extra=trace_extra,
                     )
+                    if agent_role:
+                        runtime_session.add_collaboration_event(
+                            agent_role=str(agent_role),
+                            phase=str(step.get("step_name", step_name)),
+                            summary=str(
+                                result.get("output_summary") or result.get("output") or ""
+                            )[:800],
+                            step_name=step_name,
+                        )
                     if action == "tool":
                         runtime_session.add_tool_call(
                             tool_name=step.get("tool_name", "unknown"),
@@ -115,11 +136,38 @@ class ChatAgent(BaseAgent):
                             output=result.get("output", ""),
                             error=result.get("error", None),
                         )
+                        step_meta = result.get("metadata") or {}
+                        pack = step_meta.get("deliverable")
+                        if pack:
+                            runtime_session.add_deliverable(pack)
                     elif action == "model":
                         prompt_template = step.get("prompt_template", "")
                         use_step_result = step.get("use_step_result")
+                        use_step_result_keys = step.get("use_step_result_keys")
                         finally_prompt = step.get("prompt", "")
-                        if not finally_prompt and use_step_result:
+                        if (
+                            not finally_prompt
+                            and use_step_result_keys
+                            and prompt_template
+                        ):
+                            merge_parts: dict[str, Any] = {}
+                            keys_list = use_step_result_keys
+                            if isinstance(keys_list, list):
+                                for kn in keys_list:
+                                    ks = str(kn)
+                                    for previous_result in results:
+                                        if previous_result.get("step_name") == ks:
+                                            merge_parts[ks] = previous_result.get(
+                                                "output", ""
+                                            )
+                                            break
+                                try:
+                                    finally_prompt = prompt_template.format(
+                                        **merge_parts
+                                    )
+                                except KeyError:
+                                    finally_prompt = prompt_template
+                        elif not finally_prompt and use_step_result:
                             dependency_output = ""
                             for previous_result in results:
                                 if previous_result.get("step_name") == use_step_result:
@@ -138,8 +186,65 @@ class ChatAgent(BaseAgent):
                             error=result.get("error", None),
                         )
 
-        final_result = results[-1] if results else {}
+        final_step_name = plan.get("final_step_name")
+        if final_step_name:
+            final_result = {}
+            for r in results:
+                if r.get("step_name") == final_step_name:
+                    final_result = r
+                    break
+            if not final_result and results:
+                final_result = results[-1]
+        else:
+            final_result = results[-1] if results else {}
         runtime_session.final_output = final_result.get("output", "")
+        wf_name = plan.get("workflow_name")
+        if workflow_output.get("success") and wf_name == "research_team_workflow":
+            summary_text = (runtime_session.final_output or "")[:2000]
+            runtime_session.add_deliverable(
+                deliverable_dict(
+                    "text",
+                    title="协作研究报告",
+                    summary=summary_text,
+                )
+            )
+        if workflow_output.get("success") and wf_name in (
+            "multi_module_parallel_workflow",
+            "multi_module_parallel_ffmpeg_workflow",
+            "parallel_pillar_workflow",
+            "parallel_pillar_ffmpeg_workflow",
+        ):
+            merge_step = plan.get("final_step_name") or "merge_coordination"
+            merged_text = ""
+            for r in results:
+                if r.get("step_name") == merge_step:
+                    merged_text = str(r.get("output") or "")
+                    break
+            title = (
+                "三线并行交付说明"
+                if str(wf_name).startswith("parallel_pillar")
+                else "多模块并行交付说明"
+            )
+            runtime_session.add_deliverable(
+                deliverable_dict(
+                    "text",
+                    title=title,
+                    summary=merged_text[:2000],
+                )
+            )
+        if workflow_output.get("success") and wf_name == "research_team_ffmpeg_workflow":
+            writeup_text = ""
+            for r in results:
+                if r.get("step_name") == "writeup":
+                    writeup_text = str(r.get("output") or "")
+                    break
+            runtime_session.add_deliverable(
+                deliverable_dict(
+                    "text",
+                    title="协作研究报告",
+                    summary=writeup_text[:2000],
+                )
+            )
         self._add_memory_message(
             runtime_session.session_id,
             "assistant",
@@ -230,6 +335,9 @@ class ChatAgent(BaseAgent):
         runtime_session = self._runtime_manager.create_runtime_session(
             session_id=input_data.session_id, user_input=input_data.message
         )
+        task_id = input_data.metadata.get("task_id")
+        if task_id:
+            runtime_session.task_id = str(task_id)
         self._add_memory_message(
             input_data.session_id,
             "user",
