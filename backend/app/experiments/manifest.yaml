@@ -1,3 +1,5 @@
 # 内置 Agent 实验目录（规则 Eval，无需训练数据）
 experiments:
   - exp_001_time_tool
+  - exp_002_time_reply_workflow
+  - exp_003_ffmpeg_deliverable

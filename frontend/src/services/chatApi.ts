@@ -3,6 +3,7 @@ import type {
   ChatResponse,
   ErrorResponse,
   SessionResponse,
+  TranscriptDiffResponse,
   TranscriptEntryResponse,
 } from "../types/chat";
 
@@ -24,6 +25,20 @@ export async function fetchSessions(): Promise<SessionResponse[]> {
 
 export async function fetchTranscript(sessionId: string): Promise<TranscriptEntryResponse[]> {
   return requestJson<TranscriptEntryResponse[]>(`/agent_api/sessions/${sessionId}/transcript`);
+}
+
+export async function fetchTranscriptDiff(
+  sessionId: string,
+  base: number,
+  compare: number,
+): Promise<TranscriptDiffResponse> {
+  const query = new URLSearchParams({
+    base: String(base),
+    compare: String(compare),
+  });
+  return requestJson<TranscriptDiffResponse>(
+    `/agent_api/sessions/${sessionId}/transcript/diff?${query.toString()}`,
+  );
 }
 
 async function requestJson<T>(path: string, init?: RequestInit): Promise<T> {

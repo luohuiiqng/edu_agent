@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, ref, watch } from "vue";
 
-import { fetchSessions, fetchTranscript } from "../services/chatApi";
-import type { SessionResponse, TranscriptEntryResponse } from "../types/chat";
+import { fetchSessions, fetchTranscript, fetchTranscriptDiff } from "../services/chatApi";
+import type { SessionResponse, TranscriptDiffResponse, TranscriptEntryResponse } from "../types/chat";
 
 const props = defineProps<{
   activeSessionId?: string;
@@ -30,6 +30,15 @@ const traceSearch = ref("");
 const transcriptStatusFilter = ref<"all" | "success" | "failure">("all");
 const transcriptSearch = ref("");
 const sessionSearch = ref("");
+const diffBaseIndex = ref(0);
+const diffCompareIndex = ref(1);
+const diffResult = ref<TranscriptDiffResponse | null>(null);
+const diffLoading = ref(false);
+const diffError = ref("");
+
+const diffChangedItems = computed(() =>
+  (diffResult.value?.items ?? []).filter((item) => item.changed),
+);
 
 const selectedSession = computed(() =>
   sessions.value.find((session) => session.session_id === selectedSessionId.value),
@@ -236,16 +245,20 @@ async function loadSessions() {
 async function loadTranscript(sessionId: string) {
   if (!sessionId) {
     transcript.value = [];
+    diffResult.value = null;
     return;
   }
 
   transcriptLoading.value = true;
   transcriptError.value = "";
+  diffResult.value = null;
 
   try {
     transcript.value = await fetchTranscript(sessionId);
     if (transcript.value.length > 0) {
       expandedEntryId.value = buildEntryId(transcript.value[0], 0);
+      diffBaseIndex.value = 0;
+      diffCompareIndex.value = transcript.value.length > 1 ? 1 : 0;
       await scrollExpandedEntryIntoView();
     } else {
       expandedEntryId.value = "";
@@ -254,6 +267,46 @@ async function loadTranscript(sessionId: string) {
     transcriptError.value = error instanceof Error ? error.message : "记录加载失败";
   } finally {
     transcriptLoading.value = false;
+  }
+}
+
+function transcriptRoundLabel(index: number) {
+  const entry = transcript.value[index];
+  if (!entry) {
+    return `轮次 ${index + 1}`;
+  }
+  const preview = entry.user_input.slice(0, 24);
+  return `轮次 ${index + 1}: ${preview}${entry.user_input.length > 24 ? "…" : ""}`;
+}
+
+async function runTranscriptDiff() {
+  if (!selectedSessionId.value) {
+    return;
+  }
+  if (transcript.value.length < 2) {
+    diffError.value = "至少需要 2 轮 transcript 才能对比";
+    diffResult.value = null;
+    return;
+  }
+  if (diffBaseIndex.value === diffCompareIndex.value) {
+    diffError.value = "请选择不同的基准轮次与对比轮次";
+    diffResult.value = null;
+    return;
+  }
+
+  diffLoading.value = true;
+  diffError.value = "";
+  try {
+    diffResult.value = await fetchTranscriptDiff(
+      selectedSessionId.value,
+      diffBaseIndex.value,
+      diffCompareIndex.value,
+    );
+  } catch (error) {
+    diffError.value = error instanceof Error ? error.message : "Diff 加载失败";
+    diffResult.value = null;
+  } finally {
+    diffLoading.value = false;
   }
 }
 
@@ -837,6 +890,64 @@ watch(
               </button>
             </div>
           </header>
+
+          <section v-if="transcript.length >= 2" class="diff-panel">
+            <header class="diff-panel-header">
+              <div>
+                <p class="panel-eyebrow">Run Diff</p>
+                <h4>对比两次运行</h4>
+              </div>
+              <button
+                type="button"
+                class="ghost-button"
+                :disabled="diffLoading"
+                @click="runTranscriptDiff"
+              >
+                {{ diffLoading ? "对比中…" : "执行对比" }}
+              </button>
+            </header>
+            <div class="diff-controls">
+              <label class="filter-field">
+                <span>基准</span>
+                <select v-model.number="diffBaseIndex" class="filter-select">
+                  <option
+                    v-for="(_, index) in transcript"
+                    :key="`base-${index}`"
+                    :value="index"
+                  >
+                    {{ transcriptRoundLabel(index) }}
+                  </option>
+                </select>
+              </label>
+              <label class="filter-field">
+                <span>对比</span>
+                <select v-model.number="diffCompareIndex" class="filter-select">
+                  <option
+                    v-for="(_, index) in transcript"
+                    :key="`compare-${index}`"
+                    :value="index"
+                  >
+                    {{ transcriptRoundLabel(index) }}
+                  </option>
+                </select>
+              </label>
+            </div>
+            <p v-if="diffError" class="panel-hint is-error">{{ diffError }}</p>
+            <div v-else-if="diffResult" class="diff-result">
+              <p class="diff-summary" :class="diffResult.changed ? 'is-changed' : 'is-same'">
+                {{ diffResult.changed ? "存在差异" : "两次运行一致" }}
+              </p>
+              <ul v-if="diffChangedItems.length > 0" class="diff-list">
+                <li v-for="item in diffChangedItems" :key="item.field" class="diff-item">
+                  <strong>{{ item.field }}</strong>
+                  <div class="diff-values">
+                    <p><span>基准</span>{{ formatInlineValue(item.base) }}</p>
+                    <p><span>对比</span>{{ formatInlineValue(item.compare) }}</p>
+                  </div>
+                </li>
+              </ul>
+            </div>
+          </section>
 
           <section class="trace-filters transcript-filters">
             <label class="filter-field">
@@ -1597,6 +1708,83 @@ watch(
 .session-meta {
   font-size: 13px;
   color: #64748b;
+}
+
+.diff-panel {
+  margin-bottom: 16px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  border: 1px solid rgba(59, 130, 246, 0.25);
+  background: rgba(239, 246, 255, 0.85);
+}
+
+.diff-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.diff-panel-header h4 {
+  margin: 4px 0 0;
+  font-size: 1rem;
+}
+
+.diff-controls {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.diff-result {
+  margin-top: 12px;
+}
+
+.diff-summary {
+  margin: 0 0 8px;
+  font-weight: 600;
+}
+
+.diff-summary.is-changed {
+  color: #b45309;
+}
+
+.diff-summary.is-same {
+  color: #047857;
+}
+
+.diff-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 10px;
+}
+
+.diff-item {
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid rgba(226, 232, 240, 0.9);
+}
+
+.diff-values {
+  display: grid;
+  gap: 6px;
+  margin-top: 6px;
+  font-size: 0.85rem;
+}
+
+.diff-values span {
+  display: inline-block;
+  min-width: 2.5em;
+  color: #64748b;
+  margin-right: 6px;
+}
+
+.panel-hint.is-error {
+  color: #dc2626;
 }
 
 .transcript-card {

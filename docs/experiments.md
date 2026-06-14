@@ -27,9 +27,19 @@ pytest app/test/test_eval_checklist.py app/test/test_experiment_exp_001.py -q
 
 | ID | 说明 | 验收要点 |
 |----|------|----------|
-| `exp_001_time_tool` | 用户问「现在几点了？」 | 必须调用 `time_tool`，planner 走 tool 分支，无 errors |
+| `exp_001_time_tool` | 用户问「现在几点了？」 | 必须调用 `time_tool`，planner 走 tool 分支 |
+| `exp_002_time_reply_workflow` | 「现在几点了，回复我一句」 | 走 workflow + time_tool；含 control 对照与自动 Diff |
+| `exp_003_ffmpeg_deliverable` | ffmpeg 演示短视频 | 调用 `ffmpeg_artifact_tool` 且登记 deliverable（需本机 ffmpeg） |
 
 配置文件位于 `backend/app/experiments/`，清单见 `manifest.yaml`。
+
+### 对照组与批量运行
+
+```bash
+python -m app.cli experiment run exp_002_time_reply_workflow
+python -m app.cli experiment run-all --skip-ffmpeg
+python -m app.cli experiment run exp_001_time_tool --no-control
+```
 
 ## Checklist 规则
 
@@ -66,7 +76,7 @@ checklist:
 
 实验 Eval 对应 [`agent-framework-design.md`](agent-framework-design.md) §2 的 **规则化 Eval 实验台**，用于验证「Agent 是否按预期跑」，而非语义对答案。
 
-后续计划：Run Diff（对比两次运行）、更多内置实验（workflow / deliverable）。
+前端 **RuntimeInspector** 在 transcript ≥ 2 轮时提供 Run Diff 面板，可选取两轮对比。
 
 ## Run Diff
 

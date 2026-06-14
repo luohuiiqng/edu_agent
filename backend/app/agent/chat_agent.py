@@ -386,6 +386,10 @@ class ChatAgent(BaseAgent):
                         runtime_session.add_error(
                             f"tool call error: {tool_output.error_message}"
                         )
+                    else:
+                        pack = (tool_output.metadata or {}).get("deliverable")
+                        if pack:
+                            runtime_session.add_deliverable(pack)
 
                     agent_output = AgentOutput(
                         content=tool_output.content or "",

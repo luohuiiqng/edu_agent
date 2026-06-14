@@ -51,6 +51,23 @@ export interface TranscriptEntryResponse {
   runtime_session: RuntimeSessionSnapshot;
 }
 
+export interface DiffItemResponse {
+  field: string;
+  base: unknown;
+  compare: unknown;
+  changed: boolean;
+}
+
+export interface TranscriptDiffResponse {
+  session_id: string;
+  base_index: number;
+  compare_index: number;
+  base_timestamp: string;
+  compare_timestamp: string;
+  changed: boolean;
+  items: DiffItemResponse[];
+}
+
 export interface ErrorResponse {
   error: {
     code: string;

@@ -61,7 +61,7 @@ class FfmpegArtifactTool(BaseTool):
 
     def execute(self, tool_input: ToolInput) -> ToolOutput:
         params = tool_input.params or {}
-        preset = str(params.get("preset") or "").strip()
+        preset = str(params.get("preset") or "silent_mp4").strip()
         if preset not in _PRESETS:
             return ToolOutput(
                 content="",

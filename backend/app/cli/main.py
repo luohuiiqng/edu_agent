@@ -121,6 +121,18 @@ def _build_parser() -> argparse.ArgumentParser:
     p_exp_run = exp_sub.add_parser("run", help="运行指定实验并输出 Eval 结果")
     p_exp_run.add_argument("experiment_id", help="实验 ID，如 exp_001_time_tool")
     p_exp_run.add_argument("--json", action="store_true", help="原始 JSON 输出")
+    p_exp_run.add_argument(
+        "--no-control",
+        action="store_true",
+        help="不运行 yaml 中定义的 control 对照组",
+    )
+    p_exp_run_all = exp_sub.add_parser("run-all", help="运行 manifest 中全部实验")
+    p_exp_run_all.add_argument("--json", action="store_true", help="原始 JSON 输出")
+    p_exp_run_all.add_argument(
+        "--skip-ffmpeg",
+        action="store_true",
+        help="跳过 exp_003（ffmpeg 依赖）",
+    )
 
     return parser
 
@@ -324,12 +336,40 @@ def cmd_experiment_list(ns: argparse.Namespace) -> None:
 
 
 def cmd_experiment_run(ns: argparse.Namespace) -> None:
-    from app.eval.experiment_runner import run_experiment
+    from app.eval.experiment_runner import ExperimentPairResult, run_experiment
 
-    result = run_experiment(ns.experiment_id)
+    result = run_experiment(
+        ns.experiment_id,
+        include_control=not getattr(ns, "no_control", False),
+    )
     if ns.json:
-        print(json.dumps(result.to_dict(), ensure_ascii=False, indent=2))
+        payload = result.to_dict() if isinstance(result, ExperimentPairResult) else result.to_dict()
+        print(json.dumps(payload, ensure_ascii=False, indent=2))
         return
+
+    if isinstance(result, ExperimentPairResult):
+        _print_experiment_run(result.main)
+        if result.control:
+            print("\n--- control ---")
+            _print_experiment_run(result.control)
+        if result.diff:
+            print("\n--- diff (main vs control) ---")
+            print(f"changed: {result.diff.changed}")
+            for check in result.diff.items:
+                if check.changed:
+                    print(f"  * {check.field}")
+                    print(f"    main:    {check.base}")
+                    print(f"    control: {check.compare}")
+        if not result.passed:
+            raise SystemExit(1)
+        return
+
+    _print_experiment_run(result)
+    if not result.passed:
+        raise SystemExit(1)
+
+
+def _print_experiment_run(result) -> None:
     status = "PASS" if result.passed else "FAIL"
     print(f"[{status}] {result.experiment_id} — {result.title}")
     print(f"message: {result.message}")
@@ -337,7 +377,35 @@ def cmd_experiment_run(ns: argparse.Namespace) -> None:
     for check in result.eval_result.checks:
         mark = "ok" if check.passed else "FAIL"
         print(f"  - [{mark}] {check.rule}: {check.message}")
-    if not result.passed:
+
+
+def cmd_experiment_run_all(ns: argparse.Namespace) -> None:
+    from app.eval.experiment_runner import ExperimentPairResult, ffmpeg_available, run_all_experiments
+
+    skip_ffmpeg = getattr(ns, "skip_ffmpeg", False) or not ffmpeg_available()
+    results = run_all_experiments(skip_ffmpeg=skip_ffmpeg)
+    if ns.json:
+        payload = [
+            r.to_dict() if isinstance(r, ExperimentPairResult) else r.to_dict()
+            for r in results
+        ]
+        print(json.dumps(payload, ensure_ascii=False, indent=2))
+        return
+    passed = 0
+    for result in results:
+        if isinstance(result, ExperimentPairResult):
+            _print_experiment_run(result.main)
+            ok = result.passed
+        else:
+            _print_experiment_run(result)
+            ok = result.passed
+        print()
+        if ok:
+            passed += 1
+    print(f"合计: {passed}/{len(results)} 通过")
+    if skip_ffmpeg:
+        print("(已跳过 exp_003：本机无 ffmpeg)")
+    if passed != len(results):
         raise SystemExit(1)
 
 
@@ -373,6 +441,8 @@ def main(argv: list[str] | None = None) -> None:
             cmd_experiment_list(ns)
         elif ns.exp_command == "run":
             cmd_experiment_run(ns)
+        elif ns.exp_command == "run-all":
+            cmd_experiment_run_all(ns)
         else:
             parser.error(f"未知 experiment 子命令: {ns.exp_command}")
     else:

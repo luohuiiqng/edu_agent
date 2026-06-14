@@ -1,0 +1,11 @@
+id: exp_003_ffmpeg_deliverable
+title: ffmpeg 样例须产出 deliverable
+message: 请生成 ffmpeg演示 静音视频样例
+session_id: exp-003-ffmpeg
+agent:
+  profile: lab_full
+checklist:
+  must_call_tool: ffmpeg_artifact_tool
+  min_deliverables: 1
+  no_errors: true
+  require_final_output: true

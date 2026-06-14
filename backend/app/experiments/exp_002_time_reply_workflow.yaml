@@ -1,0 +1,17 @@
+id: exp_002_time_reply_workflow
+title: 时间 + 回复意图须走 sequential workflow
+message: 现在几点了，回复我一句
+session_id: exp-002-workflow
+agent:
+  profile: lab_full
+checklist:
+  planner_action: workflow
+  must_call_tool: time_tool
+  min_workflow_steps: 2
+  no_errors: true
+  require_final_output: true
+control:
+  message: 你好
+  checklist:
+    planner_action: model
+    must_not_call_tool: time_tool

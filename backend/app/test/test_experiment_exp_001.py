@@ -16,7 +16,7 @@ def test_list_experiments_manifest():
 
 
 def test_run_exp_001_time_tool():
-    result = run_experiment("exp_001_time_tool")
+    result = run_experiment("exp_001_time_tool", include_control=False)
     assert result.agent_success is True
     assert result.eval_result.passed is True
     assert result.passed is True
